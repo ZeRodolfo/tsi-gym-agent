@@ -30,55 +30,60 @@ export default async function main(payload = {}) {
     console.log("1) Criando objeto device (online_client)…");
     const create = await fcgi("create_objects.fcgi", {
       object: "devices",
-      url: WEBHOOK_URL,
-      description: "Webhook TSIGym Check-in",
+      values: [
+        {
+          ip: WEBHOOK_URL,
+          name: "Webhook TSIGym Check-in",
+        },
+      ],
     });
-    const serverId = create.id;
+    console.log(" → create =", create);
+    const serverId = create.ids[0];
     console.log(" → server_id =", serverId);
 
     // 2) Definir sec_box.catra_role = 1 (device primário)
     console.log("2) Definindo catra_role = 1 (primário)");
     await fcgi("set_configuration.fcgi", {
-      section: "sec_box",
-      key: "catra_role",
-      value: "1",
+      sec_box: {
+        catra_role: "1",
+      },
     });
 
     // 3) Ativar modo online e identificação local
     console.log("3) Ativando modo online e local_identification");
     await fcgi("set_configuration.fcgi", {
-      section: "general",
-      key: "online",
-      value: "1",
+      general: {
+        online: "1",
+      },
     });
     await fcgi("set_configuration.fcgi", {
-      section: "general",
-      key: "local_identification",
-      value: "1",
+      general: {
+        local_identification: "1",
+      },
     });
 
     // 4) Apontar online_client.server_id para o objeto criado
     console.log("4) Apontando server_id em online_client");
     await fcgi("set_configuration.fcgi", {
-      section: "online_client",
-      key: "server_id",
-      value: serverId,
+      online_client: {
+        server_id: serverId,
+      },
     });
 
     // 5) Ajustar FSM da catraca: controlado em ambos os giros
     console.log("5) Ajustando catra_default_fsm = 0 (ambos controlados)");
     await fcgi("set_configuration.fcgi", {
-      section: "sec_box",
-      key: "catra_default_fsm",
-      value: "0",
+      sec_box: {
+        catra_default_fsm: "0",
+      },
     });
 
     // 6) (Opcional) definir direção de entrada
     console.log("6) Definindo catra_side_to_enter = clockwise");
     await fcgi("set_configuration.fcgi", {
-      section: "sec_box",
-      key: "catra_side_to_enter",
-      value: "clockwise",
+      sec_box: {
+        catra_side_to_enter: "0",
+      },
     });
 
     console.log(
@@ -89,3 +94,48 @@ export default async function main(payload = {}) {
     process.exit(1);
   }
 }
+
+async function configure(DEVICE) {
+  const AUTH = {
+    username: "admin",
+    password: "admin",
+  };
+  const WEBHOOK_URL = "http://localhost:4000/api";
+
+  // 1) criar sessão
+  const sess = (
+    await axios.post(`${DEVICE}/create_session.fcgi`, {}, { auth: AUTH })
+  ).data.session;
+
+  // 2) criar device (uma vez)
+  const dev = await axios.post(
+    `${DEVICE}/create_objects.fcgi?session=${sess}`,
+    {
+      object: "devices",
+      values: [{ name: "Wellhub", ip: WEBHOOK_URL, public_key: "" }],
+    },
+    { auth: AUTH }
+  );
+  const serverId = dev.data.ids[0];
+
+  // 3) set online_client.server_id via JSON
+  await axios.post(
+    `${DEVICE}/set_configuration.fcgi?session=${sess}`,
+    { online_client: { server_id: `${serverId}` } },
+    { auth: AUTH, headers: { "Content-Type": "application/json" } }
+  );
+
+  // 4) ativar modo online (general + online_client)
+  await axios.post(
+    `${DEVICE}/set_configuration.fcgi?session=${sess}`,
+    {
+      general: { online: "1", local_identification: "1" },
+      online_client: { extract_template: "0", max_request_attempts: "3" },
+    },
+    { auth: AUTH, headers: { "Content-Type": "application/json" } }
+  );
+
+  console.log("iDBlock Next pronto em modo online!");
+}
+
+export { configure };

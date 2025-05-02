@@ -5,18 +5,22 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 import SetupPage from "./pages/SetupPage";
 import ParametersPage from "./pages/ParametersPage";
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/setup" element={<SetupPage />} />
-        <Route path="/parameters" element={<ParametersPage />} />
-        <Route path="*" element={<Navigate to="/setup" />} />
-      </Routes>
-    </Router>
+    <>
+      <ToastContainer />
+      <Router>
+        <Routes>
+          <Route path="/setup" element={<SetupPage />} />
+          <Route path="/parameters" element={<ParametersPage />} />
+          <Route path="*" element={<Navigate to="/setup" />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

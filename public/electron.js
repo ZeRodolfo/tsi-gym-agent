@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeImage, Tray } = require("electron");
+const isDev = require("electron-is-dev");
 const path = require("path");
 const fs = require("fs");
 const { startServer } = require("./server/app");
@@ -7,6 +8,7 @@ const tokenPath = path.join(app.getPath("userData"), "token.json");
 const catracaPath = path.join(app.getPath("userData"), "catraca.json");
 
 function createWindow() {
+  const appIcon = new Tray(__dirname + "/logo.png");
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -15,9 +17,14 @@ function createWindow() {
       contextIsolation: true, // ESSENCIAL
       nodeIntegration: false, // também é importante
     },
+    icon: __dirname + "/logo.png"
   });
 
-  win.loadURL("http://localhost:3000"); // ou win.loadFile('index.html') em produção
+  win.loadURL(
+    isDev
+      ? "http://localhost:3000"
+      : `file://${path.join(__dirname, "../build/index.html")}`
+  ); // ou win.loadFile('index.html') em produção
 }
 
 app.whenReady().then(() => {

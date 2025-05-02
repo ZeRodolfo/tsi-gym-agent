@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "components/ui/Tabs";
 import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
+import { Title } from "components/ui/Title";
 import { Checkbox } from "components/ui/Checkbox";
 import {
   Select,
@@ -21,12 +22,18 @@ import {
 import IPInput from "./IPInput";
 import { login } from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
+import { toast } from "react-toastify";
 
 export default function AccessControlConfig() {
   const [ip, setIp] = useState("192.168.0.129");
   const [port, setPort] = useState(3000);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin");
+  const [txtWelcome, setTxtWelcome] = useState("Seja bem-vindo");
+  const [txtAccessDenied, setTxtAccessDenied] = useState("Acesso negado");
+  const [txtUserNotIdentifier, setTxtUserNotIdentifier] = useState(
+    "Usuário não reconhecido"
+  );
 
   //   const [timeout, setTimeout] = useState(5);
   //   const [primeSF, setPrimeSF] = useState(false);
@@ -47,14 +54,12 @@ export default function AccessControlConfig() {
   const handleTestComunication = async () => {
     login(ip, { login: username, password })
       .then(async ({ data }) => {
-        console.log("Resposta do servidor:", data);
-        alert("Comunicação testada com sucesso com a catraca!");
-        // chamar logout
+        toast.success("Comunicação testada com sucesso com a catraca!");
         await logout(ip, data.session);
       })
       .catch((error) => {
         console.error("Erro ao acessar o servidor:", error);
-        alert(
+        toast.error(
           "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
         );
       });
@@ -68,11 +73,11 @@ export default function AccessControlConfig() {
       WEBHOOK_URL: "http://localhost:4000/api",
     })
       .then(async ({ data }) => {
-        alert("Catraca configurada com sucesso!");
+        toast.success("Catraca configurada com sucesso!");
       })
       .catch((error) => {
         console.error("Erro ao configurar catraca:", error);
-        alert(
+        toast.error(
           "Não foi possível configurar a catraca. Por favor, verifique os dados."
         );
       });
@@ -85,10 +90,20 @@ export default function AccessControlConfig() {
       port,
       login: username,
       password,
+      txtWelcome,
+      txtAccessDenied,
+      txtUserNotIdentifier,
     };
 
-    await window.api?.saveCatracaData?.(data);
-    console.log("Dados da Catraca salvos:", data);
+    try {
+      window.api?.saveCatracaData?.(data);
+      toast.success("Dados da Catraca salvos com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar catraca:", error);
+      toast.error(
+        "Não foi possível salvar os dados da catraca. Por favor, tente novamente."
+      );
+    }
   };
 
   return (
@@ -101,14 +116,14 @@ export default function AccessControlConfig() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="catraca">
-            <TabsList className="grid w-full grid-cols-7">
+            {/* <TabsList className="grid w-full grid-cols-7">
               {[
                 "catraca",
-                "msgPadrao",
-                "entrada",
-                "saida",
-                "negado",
-                "horario",
+                // "msgPadrao",
+                // "entrada",
+                // "saida",
+                // "negado",
+                // "horario",
               ].map(function (tab) {
                 const label = tab === "msgPadrao" ? "Msg. Padrão" : tab;
                 return (
@@ -117,66 +132,102 @@ export default function AccessControlConfig() {
                   </TabsTrigger>
                 );
               })}
-            </TabsList>
+            </TabsList> */}
 
-            <TabsContent value="catraca" className="mt-4">
-              <div className="flex flex-wrap gap-4">
-                <div className="grid grid-cols-[1fr_130px_130px] items-center space-x-2">
-                  <div className="space-y-1">
-                    <Label>Endereço IP</Label>
+            {/* <TabsContent value="catraca" className="mt-4"> */}
+            <div className="mt-5 mb-2 flex flex-wrap items-center gap-3">
+              <Title>Configurações da Catraca</Title> -
+              <Label>
+                <b>MODELO:</b>
+                <span className="text-warning ml-2">ID Block Next</span>
+              </Label>
+            </div>
 
-                    <Input
-                      value={ip}
-                      onChange={function (e) {
-                        setIp(e.target.value);
-                      }}
-                      className="flex-1"
-                    />
-                  </div>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="grid grid-cols-[1fr_130px_130px] items-center gap-3">
+                <div>
+                  <Label>Endereço IP</Label>
 
-                  {/* <div className="space-y-1">
-                    <Label>Porta TCP</Label>
-                    <Input
-                      type="number"
-                      value={port}
-                      onChange={function (e) {
-                        setPort(Number(e.target.value));
-                      }}
-                    />
-                  </div> */}
-
-                  <div className="space-y-1">
-                    <Label>Login</Label>
-                    <Input
-                      type="text"
-                      value={username}
-                      onChange={function (e) {
-                        setUsername(Number(e.target.value));
-                      }}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label>Senha</Label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={function (e) {
-                        setPassword(Number(e.target.value));
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="space-x-2">
-                  <Button onClick={handleTestComunication}>
-                    Testar Comunicação
-                  </Button>
-                  <Button onClick={handleSetup} className="disabled">
-                    Iniciar Configuração
-                  </Button>
+                  <Input
+                    value={ip}
+                    onChange={function (e) {
+                      setIp(e.target.value);
+                    }}
+                    className="flex-1"
+                  />
                 </div>
 
-                {/* <div className="space-y-2">
+                <div>
+                  <Label>Login</Label>
+                  <Input
+                    type="text"
+                    value={username}
+                    onChange={function (e) {
+                      setUsername(Number(e.target.value));
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label>Senha</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={function (e) {
+                      setPassword(Number(e.target.value));
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <Button onClick={handleTestComunication} variant="secondary">
+                  Testar Comunicação
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-5 mb-2">
+              <Title>Mensagens no display da Catraca</Title>
+            </div>
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 w-full items-center gap-3">
+                <div>
+                  <Label>Boas vindas</Label>
+
+                  <Input
+                    value={txtWelcome}
+                    onChange={function (e) {
+                      setTxtWelcome(e.target.value);
+                    }}
+                    className="flex-1"
+                  />
+                </div>
+                <div>
+                  <Label>Acesso Negado</Label>
+
+                  <Input
+                    value={txtAccessDenied}
+                    onChange={function (e) {
+                      setTxtAccessDenied(e.target.value);
+                    }}
+                    className="flex-1"
+                  />
+                </div>
+                <div>
+                  <Label>Usuário não Cadastrado</Label>
+
+                  <Input
+                    value={txtUserNotIdentifier}
+                    onChange={function (e) {
+                      setTxtUserNotIdentifier(e.target.value);
+                    }}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              {/* <div className="space-y-2">
                   <Label>Tempo de liberação (segundo(s))</Label>
                   <Input
                     type="number"
@@ -216,12 +267,15 @@ export default function AccessControlConfig() {
                     </SelectContent>
                   </Select>
                 </div> */}
-              </div>
-            </TabsContent>
+            </div>
+            {/* </TabsContent> */}
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-end space-x-2">
-          <Button variant="outline">Fechar</Button>
+          {/* <Button variant="warning">Fechar</Button> */}
+          <Button onClick={handleSetup} variant="success">
+            Iniciar Configuração
+          </Button>
           <Button onClick={handleSaveTab}>Salvar</Button>
         </CardFooter>
       </Card>

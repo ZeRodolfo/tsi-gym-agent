@@ -9,6 +9,12 @@ function startServer() {
   app.use(express.urlencoded({ extended: true })); // Para receber dados do formulário
   app.use("/api", routers); // Usa as rotas definidas
 
+  app.post("/session_is_valid.fcgi", (req, res) => {
+    const { session } = req.body;
+    console.log("Tentativa de verificação de sessão:", { session });
+    return res.status(200).json({});
+  });
+
   app.listen(4000, () => {
     console.log("Servidor de acesso iniciado na porta 4000");
   });

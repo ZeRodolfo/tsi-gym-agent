@@ -43,18 +43,16 @@ const ParametersPage = () => {
       }
     };
 
-    console.log("KKK");
     load();
   }, []);
 
-  // console.log("Token Data:", tokenData);
   if (!tokenData?.token?.id) return <p>Carregando...</p>;
 
   return (
     <div>
       {/* <h2>Parameters</h2>
       <p>Token: {tokenData?.token?.clientToken}</p> */}
-      <CompanyHeader {...tokenData} />
+      <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
       <div className="px-3 grid grid-cols-[180px_1fr] gap-2 justify-center items-center w-full">
         <div>
           <img
