@@ -1,10 +1,26 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
 import { format } from "date-fns";
 
 export default function HistoricAccess() {
-  const [users, setUsers] = useState([1, 2]);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const data = await window.api.getHistoricUserAccessData();
+      if (data) setUsers(data || []);
+    };
+
+    load();
+  }, []);
+
+  if (!users?.length)
+    return (
+      <div className="w-full min-h-[316px] lg:min-h-[260px] flex justify-center items-center">
+        <Title className="">Aguardando novos acessos na Catraca...</Title>
+      </div>
+    );
 
   return (
     <>
@@ -21,28 +37,28 @@ export default function HistoricAccess() {
                 className="w-[120px] h-[120px] rounded-md border-2 border-primary"
               />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0">
               <div>
-                <Label className="font-extrabold text-[16px]">Matrícula:</Label>{" "}
+                <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
                 <span>
                   {user?.enrollment?.code?.toString()?.padStart(6, "0") ||
                     "000000"}
                 </span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">
+                <Label className="font-semibold text-[16px]">
                   Nome do usuário:
                 </Label>{" "}
                 <span>{user?.name || "Usuário não identificado"}</span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">
+                <Label className="font-semibold text-[16px]">
                   Dt. Nascimento:
                 </Label>{" "}
                 <span>{user?.birthdate || "N/A"}</span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">Endereço:</Label>{" "}
+                <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
                 <span>
                   {user?.address
                     ? [
@@ -60,7 +76,7 @@ export default function HistoricAccess() {
             </div>
           </div>
           <div className="flex justify-start md:justify-end mt-0 w-full items-center gap-2">
-            <Label className="font-extrabold text-sm">Horário do acesso:</Label>{" "}
+            <Label className="font-semibold text-sm">Horário do acesso:</Label>{" "}
             <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>
             <Label
               className={`text-sm font-bold border-none rounded-[5px] px-2 py-1 text-white ${

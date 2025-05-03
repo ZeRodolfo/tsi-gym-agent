@@ -21,28 +21,28 @@ export default function AccessControl() {
                 className="w-[120px] h-[120px] rounded-md border-2 border-primary"
               />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0">
               <div>
-                <Label className="font-extrabold text-[16px]">Matrícula:</Label>{" "}
+                <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
                 <span>
                   {user?.enrollment?.code?.toString()?.padStart(6, "0") ||
                     "000000"}
                 </span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">
+                <Label className="font-semibold text-[16px]">
                   Nome do usuário:
                 </Label>{" "}
                 <span>{user?.name || "Usuário não identificado"}</span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">
+                <Label className="font-semibold text-[16px]">
                   Dt. Nascimento:
                 </Label>{" "}
                 <span>{user?.birthdate || "N/A"}</span>
               </div>
               <div>
-                <Label className="font-extrabold text-[16px]">Endereço:</Label>{" "}
+                <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
                 <span>
                   {user?.address
                     ? [
@@ -60,7 +60,7 @@ export default function AccessControl() {
             </div>
           </div>
           <div className="flex justify-end mt-4 w-full items-center gap-2">
-            <Label className="font-extrabold text-[16px]">
+            <Label className="font-semibold text-[16px]">
               Horário do acesso:
             </Label>{" "}
             <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>

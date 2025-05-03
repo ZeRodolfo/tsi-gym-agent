@@ -1,67 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "components/ui/Card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "components/ui/Tabs";
 import AccessControl from "components/AccessControl";
 import HistoricAccess from "components/HistoricAccess";
 import AccessControlConfig from "components/AccessControlConfig";
 import { useNavigate } from "react-router-dom";
-import CompanyHeader from "components/CompanyHeader";
-import Loading from "components/ui/Loading";
+import { useRevalidateToken } from "contexts/RevalidateToken";
 
 const MainPage = () => {
-  const [tokenData, setTokenData] = useState(null);
   const navigate = useNavigate();
+  const { tokenData } = useRevalidateToken();
 
   useEffect(() => {
     const load = async () => {
-      const tokenData = await window.api.getTokenData();
-      if (!tokenData?.token?.id) {
-        navigate("/setup");
-        return;
-      }
-
       const catracaData = await window.api.getCatracaData();
       if (tokenData?.token?.id && !catracaData?.ip) {
         navigate("/parameters");
         return;
       }
-
-      // realizar no component ou no context
-      const lastCheck = new Date(tokenData.lastCheck);
-      const today = new Date();
-
-      if (today.toDateString() !== lastCheck.toDateString()) {
-        try {
-          const data = await checkToken(
-            tokenData.token.clientToken,
-            tokenData.token.clientSecretToken
-          );
-
-          if (!data?.id) {
-            navigate("/setup");
-          } else {
-            setTokenData(data);
-            window.api.saveTokenData({
-              token: data,
-              info: "dados da empresa no servidor",
-            });
-          }
-        } catch (error) {
-          window.api.saveTokenData(null);
-        }
-      } else {
-        setTokenData(tokenData);
-      }
     };
 
     load();
-  }, []);
-
-  if (!tokenData?.token?.id) return <Loading />;
+  }, [tokenData]);
 
   return (
-    <div>
-      <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
+    <>
       <div className="px-3 grid grid-cols-[180px_1fr] gap-2 justify-center items-center w-full">
         <div>
           <img
@@ -109,7 +72,7 @@ const MainPage = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

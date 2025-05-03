@@ -6,6 +6,7 @@ const { startServer } = require("./server/app");
 
 const tokenPath = path.join(app.getPath("userData"), "token.json");
 const catracaPath = path.join(app.getPath("userData"), "catraca.json");
+const historicUserAccessPath = path.join(app.getPath("userData"), "historic_user_access.json");
 
 function createWindow() {
   const appIcon = new Tray(__dirname + "/logo.png");
@@ -65,4 +66,15 @@ ipcMain.on("save-catraca", (event, data) => {
 ipcMain.handle("get-catraca", () => {
   if (!fs.existsSync(catracaPath)) return null;
   return JSON.parse(fs.readFileSync(catracaPath, "utf-8"));
+});
+
+// IPC para salvar dados de acesso na catraca
+ipcMain.on("save-historic-user-access", (event, data) => {
+  fs.writeFileSync(historicUserAccessPath, JSON.stringify(data));
+});
+
+// IPC para ler dados de acesso na catraca
+ipcMain.handle("get-historic-user-access", () => {
+  if (!fs.existsSync(historicUserAccessPath)) return null;
+  return JSON.parse(fs.readFileSync(historicUserAccessPath, "utf-8"));
 });
