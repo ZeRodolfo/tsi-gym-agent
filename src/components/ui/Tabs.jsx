@@ -15,7 +15,7 @@ export const TabsTrigger = React.forwardRef(function (props, ref) {
     <TabsPrimitive.Trigger
       ref={ref}
       className={
-        "px-3 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary " +
+        "px-3 py-1.5 text-md font-medium text-muted-foreground data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary " +
         className
       }
       {...rest}

@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
+import MainPage from "./pages/MainPage";
 import SetupPage from "./pages/SetupPage";
 import ParametersPage from "./pages/ParametersPage";
 
@@ -15,6 +16,7 @@ function App() {
       <ToastContainer />
       <Router>
         <Routes>
+          <Route path="/main" element={<MainPage />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/parameters" element={<ParametersPage />} />
           <Route path="*" element={<Navigate to="/setup" />} />

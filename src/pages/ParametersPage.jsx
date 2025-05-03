@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CompanyHeader from "components/CompanyHeader";
 import AccessControlConfig from "components/AccessControlConfig";
 import { checkToken } from "services/settings";
+import Loading from "components/ui/Loading";
 
 const ParametersPage = () => {
   const [tokenData, setTokenData] = useState(null);
@@ -46,7 +47,7 @@ const ParametersPage = () => {
     load();
   }, []);
 
-  if (!tokenData?.token?.id) return <p>Carregando...</p>;
+  if (!tokenData?.token?.id) return <Loading />;
 
   return (
     <div>
@@ -61,7 +62,7 @@ const ParametersPage = () => {
             className="w-[180px] h-[180px] rounded-full"
           />
         </div>
-        <AccessControlConfig />
+        <AccessControlConfig onSetup={() => navigate("/main")} />
       </div>
     </div>
   );
