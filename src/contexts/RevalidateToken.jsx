@@ -9,7 +9,15 @@ const RevalidateTokenContext = createContext();
 
 // Provedor do contexto
 export const RevalidateTokenProvider = ({ children }) => {
-  const [tokenData, setTokenData] = useState(null);
+  const [tokenData, setTokenData] = useState({
+    token: {
+      id: 'kkkk',
+      company: {
+        name: 'Teste'
+      }
+    },
+    lastCheck: new Date()
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,7 +55,7 @@ export const RevalidateTokenProvider = ({ children }) => {
       }
     };
 
-    load();
+    // load();
   }, []);
 
   if (!tokenData?.token?.id) return <Loading />;

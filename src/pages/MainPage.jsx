@@ -12,15 +12,15 @@ const MainPage = () => {
   const { tokenData } = useRevalidateToken();
 
   useEffect(() => {
-    const load = async () => {
-      const catracaData = await window.api.getCatracaData();
-      if (tokenData?.token?.id && !catracaData?.ip) {
-        navigate("/parameters");
-        return;
-      }
-    };
+    // const load = async () => {
+    //   const catracaData = await window.api.getCatracaData();
+    //   if (tokenData?.token?.id && !catracaData?.ip) {
+    //     navigate("/parameters");
+    //     return;
+    //   }
+    // };
 
-    load();
+    // load();
   }, [tokenData]);
 
   return (

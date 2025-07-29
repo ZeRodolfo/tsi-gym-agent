@@ -25,16 +25,16 @@ function App() {
               </RevalidateTokenProvider>
             }
           />
-          <Route path="/setup" element={<SetupPage />} />
-          <Route
+          {/* <Route path="/setup" element={<SetupPage />} /> */}
+          {/* <Route
             path="/parameters"
             element={
               <RevalidateTokenProvider>
                 <ParametersPage />
               </RevalidateTokenProvider>
             }
-          />
-          <Route path="*" element={<Navigate to="/setup" />} />
+          /> */}
+          <Route path="*" element={<Navigate to="/main" />} />
         </Routes>
       </Router>
     </>

@@ -11,14 +11,14 @@ import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
-import { login } from "services/controlId/idBlockNext";
+import { login, customizarMensagemEventos } from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
 
 export default function AccessControlConfig({ onSetup }) {
-  const [ip, setIp] = useState("192.168.0.130");
+  const [ip, setIp] = useState("192.168.18.116");
   const [port, setPort] = useState(3000);
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("tsitech");
   const [password, setPassword] = useState("admin");
   const [txtWelcome, setTxtWelcome] = useState("Seja bem-vindo");
   const [txtAccessDenied, setTxtAccessDenied] = useState("Acesso negado");
@@ -39,14 +39,14 @@ export default function AccessControlConfig({ onSetup }) {
       setPassword(data?.password || "admin");
     };
 
-    load();
+    // load();
   }, []);
 
   const handleTestComunication = async () => {
     login(ip, { login: username, password })
       .then(async ({ data }) => {
         toast.success("Comunicação testada com sucesso com a catraca!");
-        await logout(ip, data.session);
+        // await logout(ip, data.session);
       })
       .catch((error) => {
         console.error("Erro ao acessar o servidor:", error);
@@ -58,12 +58,26 @@ export default function AccessControlConfig({ onSetup }) {
 
   const handleSetup = async () => {
     console.log("Iniciando configuração da Catraca");
+    const {data: {session}} = await login(ip, { login: username, password })
+
+    console.log(session)
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: "http://localhost:4000/api",
+      WEBHOOK_URL: "http://192.168.18.106:4000/api",
+      session
     })
-      .then(async ({ data }) => {
+      .then(async () => {
+        await customizarMensagemEventos(ip, session, {
+           custom_auth_message: txtWelcome,
+          custom_deny_message: txtAccessDenied,
+          custom_not_identified_message: txtUserNotIdentifier,
+          custom_mask_message: "Por favor, use máscara",
+          enable_custom_auth_message: "1",
+          enable_custom_deny_message: "1",
+          enable_custom_not_identified_message: "1",
+          enable_custom_mask_message: "1",
+        })
         toast.success("Catraca configurada com sucesso!");
       })
       .catch((error) => {
@@ -87,7 +101,19 @@ export default function AccessControlConfig({ onSetup }) {
     };
 
     try {
+          const {data: {session}} = await login(ip, { login: username, password })
+
       window.api?.saveCatracaData?.(data);
+      await customizarMensagemEventos(ip, session, {
+           custom_auth_message: txtWelcome,
+          custom_deny_message: txtAccessDenied,
+          custom_not_identified_message: txtUserNotIdentifier,
+          custom_mask_message: "Por favor, use máscara",
+          enable_custom_auth_message: "1",
+          enable_custom_deny_message: "1",
+          enable_custom_not_identified_message: "1",
+          enable_custom_mask_message: "1",
+        })
       toast.success("Dados da Catraca salvos com sucesso!");
       onSetup?.("/main");
     } catch (error) {
@@ -128,7 +154,7 @@ export default function AccessControlConfig({ onSetup }) {
               type="text"
               value={username}
               onChange={function (e) {
-                setUsername(Number(e.target.value));
+                setUsername(e.target.value);
               }}
             />
           </div>
@@ -139,7 +165,7 @@ export default function AccessControlConfig({ onSetup }) {
               type="password"
               value={password}
               onChange={function (e) {
-                setPassword(Number(e.target.value));
+                setPassword(e.target.value);
               }}
             />
           </div>
