@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CompanyHeader from "components/CompanyHeader";
-import { checkToken } from "services/settings";
+import { validateTokens } from "services/catracas";
 import Loading from "components/ui/Loading";
 
 // Criação do contexto
@@ -10,20 +10,19 @@ const RevalidateTokenContext = createContext();
 // Provedor do contexto
 export const RevalidateTokenProvider = ({ children }) => {
   const [tokenData, setTokenData] = useState({
-    token: {
-      id: 'kkkk',
-      company: {
-        name: 'Teste'
-      }
+    id: null,
+    company: {
+      name: "Não definida",
     },
-    lastCheck: new Date()
+    lastCheck: new Date(),
   });
   const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       const tokenData = await window.api.getTokenData();
-      if (!tokenData?.token?.id) {
+      console.log("Loaded token data:", tokenData);
+      if (!tokenData?.id) {
         navigate("/setup");
         return;
       }
@@ -33,9 +32,9 @@ export const RevalidateTokenProvider = ({ children }) => {
 
       if (today.toDateString() !== lastCheck.toDateString()) {
         try {
-          const data = await checkToken(
-            tokenData.token.clientToken,
-            tokenData.token.clientSecretToken
+          const data = await validateTokens(
+            tokenData.tokens.clientId,
+            tokenData.tokens.clientSecret
           );
 
           if (!data?.id) {
@@ -43,8 +42,9 @@ export const RevalidateTokenProvider = ({ children }) => {
           } else {
             setTokenData(data);
             window.api.saveTokenData({
-              token: data,
-              info: "dados da empresa no servidor",
+              ...data,
+              tokens: tokenData.tokens,
+              info: "Dados da empresa no servidor",
             });
           }
         } catch (error) {
@@ -55,13 +55,13 @@ export const RevalidateTokenProvider = ({ children }) => {
       }
     };
 
-    // load();
+    load();
   }, []);
 
-  if (!tokenData?.token?.id) return <Loading />;
+  if (!tokenData?.id) return <Loading />;
 
   return (
-    <RevalidateTokenContext.Provider value={{ tokenData, setTokenData }}>
+    <RevalidateTokenContext.Provider value={{ data: tokenData, setTokenData }}>
       <div>
         <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
 

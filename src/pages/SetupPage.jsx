@@ -1,29 +1,29 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { checkToken } from "../services/settings";
+import { validateTokens } from "../services/catracas";
 import { Label } from "components/ui/Label";
 import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { toast } from "react-toastify";
 
 export default function SetupPage() {
-  const [clientToken, setClientToken] = useState("sample-client-token");
-  const [clientSecretToken, setClientSecretToken] = useState(
-    "sample-secret-token"
-  );
+  const [clientId, setClientId] = useState("901a1b77-787d-4bba-883c-d5656a8dfd39-APP");
+  const [clientSecret, setClientSecret] = useState("a48e4310-94b2-494e-8135-8a94a0f1b78c-APP");
   const navigate = useNavigate();
 
-  const handleSaveToken = (token) => {
-    window.api.saveTokenData({ token, info: "dados da empresa no servidor" });
+  const handleSaveToken = (data) => {
+    window.api.saveTokenData({
+      ...data,
+      tokens: { clientId, clientSecret },
+      info: "Dados da empresa no servidor",
+    });
   };
 
   useEffect(() => {
     const checkToken = async () => {
+      // await window.api?.logoutCatracaData();
       const data = await window.api?.getTokenData?.();
-      if (data?.id) {
-        console.log("Token já existe:", data);
-      }
-
+      if (data?.token?.id) console.log("Token já existe:", data);
       navigate("/parameters");
     };
 
@@ -32,7 +32,7 @@ export default function SetupPage() {
 
   const validateToken = async () => {
     try {
-      const data = await checkToken(clientToken, clientSecretToken);
+      const data = await validateTokens(clientId, clientSecret);
 
       if (data.id) {
         handleSaveToken(data); // chama o Electron (via preload) para salvar localmente
@@ -40,7 +40,8 @@ export default function SetupPage() {
       } else {
         toast.error("Credenciais inválidas. Por favor, tente novamente.");
       }
-    } catch {
+    } catch (err) {
+      console.log(err);
       toast.error("Credenciais inválidas. Por favor, tente novamente.");
     }
   };
@@ -64,8 +65,8 @@ export default function SetupPage() {
             <Label>Client ID</Label>
 
             <Input
-              value={clientToken}
-              onChange={(e) => setClientToken(e.target.value)}
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
               placeholder="Digite o client id"
               className="flex-1"
             />
@@ -74,8 +75,8 @@ export default function SetupPage() {
             <Label>Client Secret</Label>
 
             <Input
-              value={clientSecretToken}
-              onChange={(e) => setClientSecretToken(e.target.value)}
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
               placeholder="Digite o client secret"
             />
           </div>

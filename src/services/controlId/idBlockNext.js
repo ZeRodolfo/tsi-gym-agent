@@ -19,7 +19,8 @@ export const login = async (ip, { login, password }) => {
       }
     )
     .catch((error) => {
-      throw error;
+      console.log("Login Err", error);
+      // throw error;
     });
 };
 
@@ -37,7 +38,9 @@ export const logout = async (ip, session) => {
       }
     )
     .catch((error) => {
-      throw error;
+      console.log("Logout Err", error);
+
+      // throw error;
     });
 };
 
@@ -299,10 +302,7 @@ export const getUserAccessRules = async (ip, session) => {
     });
 };
 
-export const getAccessRules = async (
-  ip,
-  session
-) => {
+export const getAccessRules = async (ip, session) => {
   return await axios
     .post(
       `http://${ip}/load_objects.fcgi?session=${session}`,
@@ -375,10 +375,7 @@ export const createUserGroups = async (
     });
 };
 
-export const getUserGroups = async (
-  ip,
-  session
-) => {
+export const getUserGroups = async (ip, session) => {
   return await axios
     .post(
       `http://${ip}/load_objects.fcgi?session=${session}`,
@@ -422,62 +419,52 @@ export const createGroupAccessRules = async (
     });
 };
 
-export const getConfiguration = async (
-  ip,
-  session
-) => {
+export const getConfiguration = async (ip, session) => {
   return await axios
     .post(
       `http://${ip}/get_configuration.fcgi?session=${session}`,
       {
-	"general": [
-		"online",
-		"beep_enabled",
-		// "relay1_enabled",
-		// "relay1_timeout",
-		// "relay1_auto_close",
-		// "relay2_enabled",
-		// "relay2_timeout",
-		// "relay2_auto_close",
-		"bell_enabled",
-		"bell_relay",
-		"local_identification",
-		"exception_mode",
-		"language",
-		"daylight_savings_time_start",
-		"daylight_savings_time_end",
-		"auto_reboot"
-	],
-	// "mifare": ["byte_order"],
-	// "w_in0": ["byte_order"],
-	// "w_out0": ["data"],
-	"alarm": [
-		"siren_enabled"
-	],
-	"identifier": [
-		"verbose_logging",
-		"log_type",
-		"multi_factor_authentication"
-	],
-	// "bio_id": ["similarity_threshold_1ton"],
-	"online_client": [
-		"server_id", 
-		"extract_template",
-		"max_request_attempts"
-	],
-	// "bio_module": ["var_min"],
-	"monitor": [
-		"path",
-		"hostname",
-		"port",
-		"request_timeout"
-	],
-	"push_server": [
-		"push_request_timeout",
-		"push_request_period",
-		"push_remote_address"
-	]
-},
+        general: [
+          "online",
+          "beep_enabled",
+          // "relay1_enabled",
+          // "relay1_timeout",
+          // "relay1_auto_close",
+          // "relay2_enabled",
+          // "relay2_timeout",
+          // "relay2_auto_close",
+          "bell_enabled",
+          "bell_relay",
+          "local_identification",
+          "exception_mode",
+          "language",
+          "daylight_savings_time_start",
+          "daylight_savings_time_end",
+          "auto_reboot",
+        ],
+        // "mifare": ["byte_order"],
+        // "w_in0": ["byte_order"],
+        // "w_out0": ["data"],
+        alarm: ["siren_enabled"],
+        identifier: [
+          "verbose_logging",
+          "log_type",
+          "multi_factor_authentication",
+        ],
+        // "bio_id": ["similarity_threshold_1ton"],
+        online_client: [
+          "server_id",
+          "extract_template",
+          "max_request_attempts",
+        ],
+        // "bio_module": ["var_min"],
+        monitor: ["path", "hostname", "port", "request_timeout"],
+        push_server: [
+          "push_request_timeout",
+          "push_request_period",
+          "push_remote_address",
+        ],
+      },
       {
         headers: { "Content-Type": "application/json" },
         timeout: 20000, // 10 segundos
@@ -550,7 +537,7 @@ export const destroyUsers = async (ip, session) => {
     .post(
       `http://${ip}/destroy_objects.fcgi?session=${session}`,
       {
-       "object": "users"
+        object: "users",
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -561,7 +548,6 @@ export const destroyUsers = async (ip, session) => {
       throw error;
     });
 };
-
 
 export const activatePush = async (ip, session) => {
   return await axios

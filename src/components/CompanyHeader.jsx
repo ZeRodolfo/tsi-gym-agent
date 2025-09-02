@@ -2,20 +2,27 @@ import React, { useState } from "react";
 import { format } from "date-fns";
 import { FaSyncAlt } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { checkToken } from "services/settings";
+import { validateTokens } from "services/catracas";
 
-export default function CompanyHeader({ token, lastCheck, onChangeToken }) {
+export default function CompanyHeader({
+  name,
+  company,
+  tokens,
+  lastCheck,
+  onChangeToken,
+}) {
   const [sync, setSync] = useState(false);
 
   const handleSync = async () => {
     setSync(true);
 
     try {
-      const data = await checkToken(token.clientToken, token.clientSecretToken);
+      const data = await validateTokens(tokens.clientId, tokens.clientSecret);
 
       if (data?.id) {
         const payload = {
-          token: data,
+          ...data,
+          tokens,
           info: "dados da empresa no servidor",
           lastCheck: new Date().toISOString(),
         };
@@ -38,7 +45,7 @@ export default function CompanyHeader({ token, lastCheck, onChangeToken }) {
     <div>
       <header className="mb-0 bg-primary text-white">
         <div className="flex justify-between w-full px-3 py-2">
-          <span>{token?.company?.name}</span>
+          <span>{company?.name || name}</span>
           <div className="flex flex-wrap gap-2 justify-end items-center">
             <p>
               Última sincronização:{" "}

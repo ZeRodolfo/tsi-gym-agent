@@ -6,7 +6,10 @@ const { startServer } = require("./server/app");
 
 const tokenPath = path.join(app.getPath("userData"), "token.json");
 const catracaPath = path.join(app.getPath("userData"), "catraca.json");
-const historicUserAccessPath = path.join(app.getPath("userData"), "historic_user_access.json");
+const historicUserAccessPath = path.join(
+  app.getPath("userData"),
+  "historic_user_access.json"
+);
 
 function createWindow() {
   const appIcon = new Tray(__dirname + "/logo.png");
@@ -18,7 +21,7 @@ function createWindow() {
       contextIsolation: true, // ESSENCIAL
       nodeIntegration: false, // também é importante
     },
-    icon: __dirname + "/logo.png"
+    icon: __dirname + "/logo.png",
   });
 
   win.loadURL(
@@ -45,6 +48,7 @@ app.on("activate", () => {
 
 // IPC para salvar token
 ipcMain.on("save-token", (event, data) => {
+  console.log("save", data);
   fs.writeFileSync(
     tokenPath,
     JSON.stringify({ ...data, lastCheck: new Date().toISOString() })
@@ -53,8 +57,11 @@ ipcMain.on("save-token", (event, data) => {
 
 // IPC para ler token
 ipcMain.handle("get-token", () => {
-  if (!fs.existsSync(tokenPath)) return null;
-  return JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+  const exists = fs.existsSync(tokenPath);
+  console.log("exists", exists);
+  return fs.existsSync(tokenPath)
+    ? JSON.parse(fs.readFileSync(tokenPath, "utf-8"))
+    : null;
 });
 
 // IPC para salvar dados da catraca
@@ -66,6 +73,24 @@ ipcMain.on("save-catraca", (event, data) => {
 ipcMain.handle("get-catraca", () => {
   if (!fs.existsSync(catracaPath)) return null;
   return JSON.parse(fs.readFileSync(catracaPath, "utf-8"));
+});
+
+// IPC para remove dados da catraca
+ipcMain.handle("logout-catraca", () => {
+  try {
+    if (fs.existsSync(catracaPath)) fs.rmSync(catracaPath, { force: true });
+    if (fs.existsSync(tokenPath)) fs.rmSync(tokenPath, { force: true });
+    if (fs.existsSync(historicUserAccessPath))
+      fs.rmSync(historicUserAccessPath, { force: true });
+    // fs.writeFileSync(catracaPath, null);
+    // fs.writeFileSync(tokenPath, null);
+    // fs.writeFileSync(historicUserAccessPath, null);
+    console.log("OI");
+    return true;
+  } catch (err) {
+    console.error("Erro ao remover arquivos:", err);
+    return false;
+  }
 });
 
 // IPC para salvar dados de acesso na catraca

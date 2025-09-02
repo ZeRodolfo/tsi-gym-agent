@@ -11,11 +11,24 @@ import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
-import { login, customizarMensagemEventos } from "services/controlId/idBlockNext";
+import {
+  login,
+  logout,
+  customizarMensagemEventos,
+} from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import { useRevalidateToken } from "contexts/RevalidateToken";
+
+const CATRACA_MODELS = {
+  idblock_next: "ID Block Next",
+};
 
 export default function AccessControlConfig({ onSetup }) {
+  const [isLoadingSave, setIsLoadingSave] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [ip, setIp] = useState("192.168.18.116");
   const [port, setPort] = useState(3000);
   const [username, setUsername] = useState("tsitech");
@@ -25,6 +38,8 @@ export default function AccessControlConfig({ onSetup }) {
   const [txtUserNotIdentifier, setTxtUserNotIdentifier] = useState(
     "Usuário não reconhecido"
   );
+  const navigate = useNavigate();
+  const { data: catraca } = useRevalidateToken();
 
   //   const [timeout, setTimeout] = useState(5);
   //   const [primeSF, setPrimeSF] = useState(false);
@@ -39,10 +54,11 @@ export default function AccessControlConfig({ onSetup }) {
       setPassword(data?.password || "admin");
     };
 
-    // load();
+    load();
   }, []);
 
   const handleTestComunication = async () => {
+    setIsLoadingTest(true);
     login(ip, { login: username, password })
       .then(async ({ data }) => {
         toast.success("Comunicação testada com sucesso com a catraca!");
@@ -53,23 +69,36 @@ export default function AccessControlConfig({ onSetup }) {
         toast.error(
           "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
         );
+      })
+      .finally(() => {
+        setIsLoadingTest(false);
       });
   };
 
   const handleSetup = async () => {
+    setIsLoadingSettings(true);
     console.log("Iniciando configuração da Catraca");
-    const {data: {session}} = await login(ip, { login: username, password })
+    const data = await login(ip, { login: username, password });
+    const { session } = data || {};
 
-    console.log(session)
+    if (!session) {
+      toast.error(
+        "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
+      );
+      setIsLoadingSettings(false);
+      return;
+    }
+
+    console.log(session);
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
       WEBHOOK_URL: "http://192.168.18.106:4000/api",
-      session
+      session,
     })
       .then(async () => {
         await customizarMensagemEventos(ip, session, {
-           custom_auth_message: txtWelcome,
+          custom_auth_message: txtWelcome,
           custom_deny_message: txtAccessDenied,
           custom_not_identified_message: txtUserNotIdentifier,
           custom_mask_message: "Por favor, use máscara",
@@ -77,7 +106,7 @@ export default function AccessControlConfig({ onSetup }) {
           enable_custom_deny_message: "1",
           enable_custom_not_identified_message: "1",
           enable_custom_mask_message: "1",
-        })
+        });
         toast.success("Catraca configurada com sucesso!");
       })
       .catch((error) => {
@@ -85,10 +114,14 @@ export default function AccessControlConfig({ onSetup }) {
         toast.error(
           "Não foi possível configurar a catraca. Por favor, verifique os dados."
         );
+      })
+      .finally(() => {
+        setIsLoadingSettings(false);
       });
   };
 
   const handleSaveTab = async () => {
+    setIsLoadingSave(true);
     console.log("Salvando dados da Catraca");
     const data = {
       ip,
@@ -101,28 +134,40 @@ export default function AccessControlConfig({ onSetup }) {
     };
 
     try {
-          const {data: {session}} = await login(ip, { login: username, password })
+      const response = await login(ip, { login: username, password });
+      const { session } = response || {};
 
+      if (!session) {
+        toast.error(
+          "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
+        );
+        setIsLoadingSave(false);
+        return;
+      }
       window.api?.saveCatracaData?.(data);
       await customizarMensagemEventos(ip, session, {
-           custom_auth_message: txtWelcome,
-          custom_deny_message: txtAccessDenied,
-          custom_not_identified_message: txtUserNotIdentifier,
-          custom_mask_message: "Por favor, use máscara",
-          enable_custom_auth_message: "1",
-          enable_custom_deny_message: "1",
-          enable_custom_not_identified_message: "1",
-          enable_custom_mask_message: "1",
-        })
+        custom_auth_message: txtWelcome,
+        custom_deny_message: txtAccessDenied,
+        custom_not_identified_message: txtUserNotIdentifier,
+        custom_mask_message: "Por favor, use máscara",
+        enable_custom_auth_message: "1",
+        enable_custom_deny_message: "1",
+        enable_custom_not_identified_message: "1",
+        enable_custom_mask_message: "1",
+      });
       toast.success("Dados da Catraca salvos com sucesso!");
       onSetup?.("/main");
     } catch (error) {
       console.error("Erro ao salvar catraca:", error);
       toast.error(
-        "Não foi possível salvar os dados da catraca. Por favor, tente novamente."
+        "Não foi possível salvar os dados da catraca. Não foi possível acessar a catraca, verifique os parâmetros informados."
       );
+    } finally {
+      setIsLoadingSave(false);
     }
   };
+
+  const isLoading = isLoadingTest || isLoadingSave || isLoadingSettings;
 
   return (
     <>
@@ -130,7 +175,9 @@ export default function AccessControlConfig({ onSetup }) {
         <Title>Configurações da Catraca</Title> -
         <Label>
           <b>MODELO:</b>
-          <span className="text-warning ml-2">ID Block Next</span>
+          <span className="text-warning ml-2">
+            {CATRACA_MODELS?.[catraca?.model?.type] || "Não definido"}
+          </span>
         </Label>
       </div>
 
@@ -171,8 +218,12 @@ export default function AccessControlConfig({ onSetup }) {
           </div>
         </div>
         <div>
-          <Button onClick={handleTestComunication} variant="secondary">
-            Testar Comunicação
+          <Button
+            onClick={handleTestComunication}
+            variant="secondary"
+            disabled={isLoading}
+          >
+            {isLoadingTest ? "Testando..." : "Testar Comunicação"}
           </Button>
         </div>
       </div>
@@ -261,10 +312,12 @@ export default function AccessControlConfig({ onSetup }) {
       </div>
 
       <div className="mt-4 flex justify-end space-x-2">
-        <Button onClick={handleSetup} variant="success">
-          Iniciar Configuração
+        <Button onClick={handleSetup} variant="success" disabled={isLoading}>
+          {isLoadingSettings ? "Configurando..." : "Iniciar Configuração"}
         </Button>
-        <Button onClick={handleSaveTab}>Salvar</Button>
+        <Button onClick={handleSaveTab} disabled={isLoading}>
+          {isLoadingSave ? "Salvando..." : "Salvar"}
+        </Button>
       </div>
     </>
   );

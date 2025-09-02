@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   getTokenData: () => ipcRenderer.invoke('get-token'),
   saveCatracaData: (data) => ipcRenderer.send('save-catraca', data),
   getCatracaData: () => ipcRenderer.invoke('get-catraca'),
+  logoutCatracaData: () => ipcRenderer.invoke('logout-catraca'),
   saveHistoricUserAccessData: (data) => ipcRenderer.send('save-historic-user-access', data),
   getHistoricUserAccessData: () => ipcRenderer.invoke('get-historic-user-access'),
 });
