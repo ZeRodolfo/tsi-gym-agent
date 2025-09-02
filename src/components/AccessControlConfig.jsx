@@ -11,7 +11,7 @@ import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
-import { login } from "services/controlId/idBlockNext";
+import { login, logout } from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
 
@@ -128,7 +128,7 @@ export default function AccessControlConfig({ onSetup }) {
               type="text"
               value={username}
               onChange={function (e) {
-                setUsername(Number(e.target.value));
+                setUsername(e.target.value);
               }}
             />
           </div>
@@ -139,7 +139,7 @@ export default function AccessControlConfig({ onSetup }) {
               type="password"
               value={password}
               onChange={function (e) {
-                setPassword(Number(e.target.value));
+                setPassword(e.target.value);
               }}
             />
           </div>
