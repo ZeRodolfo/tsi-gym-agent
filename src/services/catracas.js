@@ -1,11 +1,11 @@
-export const validateTokens = async (clientId, clientSecret) => {
+export const validateTokens = async (clientId, clientSecret, machine) => {
   try {
     const response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/catracas/validate-tokens`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, clientSecret }),
+        body: JSON.stringify({ machine, clientId, clientSecret }),
       }
     );
 

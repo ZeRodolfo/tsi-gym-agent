@@ -18,7 +18,7 @@ async function fcgi(path, payload = {}, sessionId) {
 export default async function main(payload = {}) {
   DEVICE_IP = payload.DEVICE_IP;
   DEVICE_PASSWORD = payload.DEVICE_PASSWORD;
-  WEBHOOK_URL = "http://192.168.18.11:4000/api"; //payload.WEBHOOK_URL;
+  WEBHOOK_URL = "http://192.168.18.27:4000/api"; //payload.WEBHOOK_URL;
   const session = payload.session;
 
   try {
@@ -123,7 +123,7 @@ async function configure(DEVICE) {
     username: "admin",
     password: "admin",
   };
-  const WEBHOOK_URL = "http://192.168.18.11:4000/api";
+  const WEBHOOK_URL = "http://192.168.18.27:4000/api";
 
   // 1) criar sessão
   const sess = (

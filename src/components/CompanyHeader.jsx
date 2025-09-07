@@ -17,7 +17,11 @@ export default function CompanyHeader({
     setSync(true);
 
     try {
-      const data = await validateTokens(tokens.clientId, tokens.clientSecret);
+      const machineKey = await window.system.getMachineId();
+      const data = await validateTokens(tokens.clientId, tokens.clientSecret, {
+        key: machineKey,
+        name: "PC Name",
+      });
 
       if (data?.id) {
         const payload = {
@@ -41,6 +45,10 @@ export default function CompanyHeader({
     }
   };
 
+  const handleReset = () => {
+    
+  }
+
   return (
     <div>
       <header className="mb-0 bg-primary text-white">
@@ -49,7 +57,9 @@ export default function CompanyHeader({
           <div className="flex flex-wrap gap-2 justify-end items-center">
             <p>
               Última sincronização:{" "}
-              {format(new Date(lastCheck), "dd/MM/yyyy HH:mm:ss")}
+              {lastCheck
+                ? format(new Date(lastCheck), "dd/MM/yyyy HH:mm:ss")
+                : "-"}
             </p>
             <b>|</b>
             <button
@@ -59,6 +69,14 @@ export default function CompanyHeader({
             >
               <FaSyncAlt size={14} className={sync ? "animate-spin" : ""} />
               {sync ? "sincronizando..." : "sincronizar"}
+            </button>
+            <button
+              className="flex gap-2 items-center"
+              onClick={handleReset}
+              disabled={sync}
+            >
+              <FaSyncAlt size={14} className={sync ? "animate-spin" : ""} />
+              Sair
             </button>
           </div>
         </div>

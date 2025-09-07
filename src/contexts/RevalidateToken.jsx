@@ -3,75 +3,76 @@ import { useNavigate } from "react-router-dom";
 import CompanyHeader from "components/CompanyHeader";
 import { validateTokens } from "services/catracas";
 import Loading from "components/ui/Loading";
+import { io, Socket } from "socket.io-client";
+// import { toast } from "sonner";
 
-// Criação do contexto
-const RevalidateTokenContext = createContext();
+const RevalidateTokenContext = createContext(null);
 
-// Provedor do contexto
 export const RevalidateTokenProvider = ({ children }) => {
-  const [tokenData, setTokenData] = useState({
-    id: null,
-    company: {
-      name: "Não definida",
-    },
-    lastCheck: new Date(),
-  });
+  const [tokenData, setTokenData] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const load = async () => {
-      const tokenData = await window.api.getTokenData();
-      console.log("Loaded token data:", tokenData);
-      if (!tokenData?.id) {
-        navigate("/setup");
-        return;
-      }
+  // 🔹 Carrega e valida token salvo localmente
+  const loadToken = async () => {
+    const localToken = await window.api.getTokenData();
 
-      const lastCheck = new Date(tokenData.lastCheck);
-      const today = new Date();
+    if (!localToken?.id) {
+      navigate("/setup");
+      return null;
+    }
 
-      if (today.toDateString() !== lastCheck.toDateString()) {
-        try {
-          const data = await validateTokens(
-            tokenData.tokens.clientId,
-            tokenData.tokens.clientSecret
-          );
+    const machineKey = await window.system.getMachineId();
+    const lastCheck = new Date(localToken.lastCheck);
+    const today = new Date();
 
-          if (!data?.id) {
-            navigate("/setup");
-          } else {
-            setTokenData(data);
-            window.api.saveTokenData({
-              ...data,
-              tokens: tokenData.tokens,
-              info: "Dados da empresa no servidor",
-            });
-          }
-        } catch (error) {
-          window.api.saveTokenData(null);
+    // 🔹 Só valida uma vez por dia no servidor
+    if (today.toDateString() !== lastCheck.toDateString()) {
+      try {
+        const validated = await validateTokens(
+          localToken.tokens.clientId,
+          localToken.tokens.clientSecret,
+          { key: machineKey, name: "PC name" }
+        );
+
+        if (!validated?.id) {
+          navigate("/setup");
+          return null;
         }
-      } else {
-        setTokenData(tokenData);
-      }
-    };
 
-    load();
+        const updatedData = { ...validated, tokens: localToken.tokens };
+        setTokenData(updatedData);
+
+        await window.api.saveTokenData({
+          ...updatedData,
+          lastCheck: new Date().toISOString(),
+        });
+
+        return updatedData;
+      } catch (err) {
+        console.error("Erro ao validar token:", err);
+        navigate("/setup");
+        return null;
+      }
+    }
+
+    setTokenData(localToken);
+    return localToken;
+  };
+
+  useEffect(() => {
+    loadToken();
   }, []);
 
   if (!tokenData?.id) return <Loading />;
 
   return (
     <RevalidateTokenContext.Provider value={{ data: tokenData, setTokenData }}>
-      <div>
-        <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
-
-        {children}
-      </div>
+      <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
+      {children}
     </RevalidateTokenContext.Provider>
   );
 };
 
-// Hook para usar o contexto
 export const useRevalidateToken = () => {
   const context = useContext(RevalidateTokenContext);
   if (!context) {

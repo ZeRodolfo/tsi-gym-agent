@@ -10,34 +10,38 @@ import MainPage from "./pages/MainPage";
 import SetupPage from "./pages/SetupPage";
 import ParametersPage from "./pages/ParametersPage";
 import { RevalidateTokenProvider } from "contexts/RevalidateToken";
+import { SocketProvider } from "contexts/Socket";
+import { SocketLocalProvider } from "contexts/SocketLocal";
 
 function App() {
   return (
-    <>
-      <ToastContainer />
-      <Router>
-        <Routes>
-          <Route
-            path="/main"
-            element={
-              <RevalidateTokenProvider>
-                <MainPage />
-              </RevalidateTokenProvider>
-            }
-          />
-          <Route path="/setup" element={<SetupPage />} />
-          <Route
-            path="/parameters"
-            element={
-              <RevalidateTokenProvider>
-                <ParametersPage />
-              </RevalidateTokenProvider>
-            }
-          />
-          <Route path="*" element={<Navigate to="/setup" />} />
-        </Routes>
-      </Router>
-    </>
+    <SocketProvider>
+      <SocketLocalProvider>
+        <ToastContainer />
+        <Router>
+          <Routes>
+            <Route
+              path="/main"
+              element={
+                <RevalidateTokenProvider>
+                  <MainPage />
+                </RevalidateTokenProvider>
+              }
+            />
+            <Route path="/setup" element={<SetupPage />} />
+            <Route
+              path="/parameters"
+              element={
+                <RevalidateTokenProvider>
+                  <ParametersPage />
+                </RevalidateTokenProvider>
+              }
+            />
+            <Route path="*" element={<Navigate to="/setup" />} />
+          </Routes>
+        </Router>
+      </SocketLocalProvider>
+    </SocketProvider>
   );
 }
 

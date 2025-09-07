@@ -5,10 +5,19 @@ import { Label } from "components/ui/Label";
 import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_LOCAL_URL,
+});
 
 export default function SetupPage() {
-  const [clientId, setClientId] = useState("901a1b77-787d-4bba-883c-d5656a8dfd39-APP");
-  const [clientSecret, setClientSecret] = useState("a48e4310-94b2-494e-8135-8a94a0f1b78c-APP");
+  const [clientId, setClientId] = useState(
+    "901a1b77-787d-4bba-883c-d5656a8dfd39-APP"
+  );
+  const [clientSecret, setClientSecret] = useState(
+    "a48e4310-94b2-494e-8135-8a94a0f1b78c-APP"
+  );
   const navigate = useNavigate();
 
   const handleSaveToken = (data) => {
@@ -21,10 +30,11 @@ export default function SetupPage() {
 
   useEffect(() => {
     const checkToken = async () => {
-      // await window.api?.logoutCatracaData();
-      const data = await window.api?.getTokenData?.();
-      if (data?.token?.id) console.log("Token já existe:", data);
-      navigate("/parameters");
+      const { data: catraca } = await api.get("/catracas/current");
+      const { data: settings } = await api.get("/settings");
+      if (!settings?.id && !settings?.ip && catraca?.id)
+        navigate("/parameters");
+      else if (catraca?.id) navigate("/main");
     };
 
     checkToken();
@@ -32,10 +42,16 @@ export default function SetupPage() {
 
   const validateToken = async () => {
     try {
-      const data = await validateTokens(clientId, clientSecret);
+      const machineKey = await window.system.getMachineId();
+      const data = await api.post(`/catracas/validate-tokens`, {
+        clientId,
+        clientSecret,
+        machineKey,
+        machineName: "PC Name",
+      });
 
-      if (data.id) {
-        handleSaveToken(data); // chama o Electron (via preload) para salvar localmente
+      console.log("data", data);
+      if (data?.id) {
         navigate("/parameters");
       } else {
         toast.error("Credenciais inválidas. Por favor, tente novamente.");

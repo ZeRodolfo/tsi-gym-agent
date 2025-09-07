@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, nativeImage, Tray } = require("electron");
 const isDev = require("electron-is-dev");
 const path = require("path");
 const fs = require("fs");
+const { machineIdSync } = require("node-machine-id");
 const { startServer } = require("./server/app");
 
 const tokenPath = path.join(app.getPath("userData"), "token.json");
@@ -102,4 +103,8 @@ ipcMain.on("save-historic-user-access", (event, data) => {
 ipcMain.handle("get-historic-user-access", () => {
   if (!fs.existsSync(historicUserAccessPath)) return null;
   return JSON.parse(fs.readFileSync(historicUserAccessPath, "utf-8"));
+});
+
+ipcMain.handle("get-machine-id", async () => {
+  return machineIdSync(true);
 });

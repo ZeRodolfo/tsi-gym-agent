@@ -557,7 +557,7 @@ export const activatePush = async (ip, session) => {
         push_server: {
           push_request_timeout: "5000",
           push_request_period: "15",
-          push_remote_address: "http://192.168.18.11:4000",
+          push_remote_address: "http://192.168.18.27:4000",
         },
       },
       {

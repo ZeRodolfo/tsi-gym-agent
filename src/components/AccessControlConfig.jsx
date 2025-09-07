@@ -20,6 +20,7 @@ import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useRevalidateToken } from "contexts/RevalidateToken";
+import { api } from "services/api";
 
 const CATRACA_MODELS = {
   idblock_next: "ID Block Next",
@@ -47,11 +48,17 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      const data = await window.api?.getCatracaData?.();
-      setIp(data?.ip || "192.168.0.130");
+      const { data } = await api.get("/settings");
+
+      setIp(data?.ip || "192.168.18.116");
       setPort(data?.port || 3000);
-      setUsername(data?.login || "admin");
+      setUsername(data?.username || "admin");
       setPassword(data?.password || "admin");
+      setTxtWelcome(data?.customAuthMessage || "Seja bem-vindo");
+      setTxtAccessDenied(data?.customDenyMessage || "Acesso negado");
+      setTxtUserNotIdentifier(
+        data?.customNotIdentifiedMessage || "Usuário não reconhecido"
+      );
     };
 
     load();
@@ -79,7 +86,7 @@ export default function AccessControlConfig({ onSetup }) {
     setIsLoadingSettings(true);
     console.log("Iniciando configuração da Catraca");
     const data = await login(ip, { login: username, password });
-    const { session } = data || {};
+    const { session } = data?.data || {};
 
     if (!session) {
       toast.error(
@@ -90,10 +97,11 @@ export default function AccessControlConfig({ onSetup }) {
     }
 
     console.log(session);
+    // pegar o IP da maquina onde esta o agente
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: "http://192.168.18.106:4000/api",
+      WEBHOOK_URL: "http://192.168.18.27:4000/api",
       session,
     })
       .then(async () => {
@@ -123,19 +131,36 @@ export default function AccessControlConfig({ onSetup }) {
   const handleSaveTab = async () => {
     setIsLoadingSave(true);
     console.log("Salvando dados da Catraca");
-    const data = {
-      ip,
-      port,
-      login: username,
-      password,
-      txtWelcome,
-      txtAccessDenied,
-      txtUserNotIdentifier,
-    };
+    // const data = {
+    //   ip,
+    //   port,
+    //   login: username,
+    //   password,
+    //   txtWelcome,
+    //   txtAccessDenied,
+    //   txtUserNotIdentifier,
+    // };
 
     try {
+      const payload = {
+        ip,
+        port,
+        username,
+        password,
+        customAuthMessage: txtWelcome,
+        customDenyMessage: txtAccessDenied,
+        customNotIdentifiedMessage: txtUserNotIdentifier,
+        customMaskMessage: "Por favor, use máscara",
+        enableCustomAuthMessage: "1",
+        enableCustomDenyMessage: "1",
+        enableCustomNotIdentifiedMessage: "1",
+        enableCustomMaskMessage: "1",
+      };
+
+      await api.post("/settings", payload);
+
       const response = await login(ip, { login: username, password });
-      const { session } = response || {};
+      const { session } = response?.data || {};
 
       if (!session) {
         toast.error(
@@ -144,7 +169,6 @@ export default function AccessControlConfig({ onSetup }) {
         setIsLoadingSave(false);
         return;
       }
-      window.api?.saveCatracaData?.(data);
       await customizarMensagemEventos(ip, session, {
         custom_auth_message: txtWelcome,
         custom_deny_message: txtAccessDenied,

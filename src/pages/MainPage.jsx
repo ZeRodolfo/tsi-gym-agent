@@ -15,10 +15,10 @@ const MainPage = () => {
     const load = async () => {
       const catracaData = await window.api.getCatracaData();
       console.log("Catraca Data:", catracaData);
-      if (tokenData?.token?.id && !catracaData?.ip) {
-        navigate("/parameters");
-        return;
-      }
+      // if (tokenData?.token?.id && !catracaData?.ip) {
+      //   navigate("/parameters");
+      //   return;
+      // }
     };
 
     load();
