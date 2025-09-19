@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 // import { toast } from "sonner";
 import {
   login,
+  verifySession,
   createUsers,
   createOrUpdateUsers,
   destroyUsers,
@@ -19,16 +20,45 @@ import {
   getAccessRules,
   createGroupAccessRules,
 } from "services/controlId/idBlockNext";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSettings } from "services/settings";
+import { handleFreeCatracaConfirm } from "utils/freeCatraca";
 
 const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
+  const [session, setSession] = useState(null);
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchSettings,
+    initialData: null, // opcional, começa vazio
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const ip = settings?.ip;
+        const username = settings?.username;
+        const password = settings?.password;
+        const { data: response } = await login(ip, {
+          login: username,
+          password,
+        });
+        setSession(response?.session);
+      } catch (err) {
+        console.log("Não foi possível recuperar a seção");
+        setSession(null);
+      }
+    };
+
+    if (settings) load();
+  }, [settings]);
 
   // 🔹 Inicia socket de comunicação
   const initSocket = async (data) => {
     const machineId = await window.system.getMachineId();
-    const socket = io("http://localhost:4003/agent", {
+    const socket = io(process.env.REACT_APP_WSS_BASE_URL, {
       query: {
         companyId: data.companyId,
         branchId: data.branchId,
@@ -47,11 +77,23 @@ export const SocketProvider = ({ children }) => {
       console.log("🔗 Conectado ao servidor VPS:", socket.id);
 
       // envia heartbeat a cada 30s
-      heartbeat = setInterval(() => {
-        socket.emit("ping", {
-          timestamp: new Date().toISOString(),
-        });
-      }, 30000);
+      heartbeat = setInterval(async () => {
+        // const get ping local
+        try {
+          const config = await verifySession(settings?.ip, session);
+          if (config)
+            socket.emit("catraca_status", {
+              timestamp: new Date().toISOString(),
+              online: true,
+            });
+        } catch (err) {
+          console.log("Offline");
+          socket.emit("catraca_status", {
+            timestamp: new Date().toISOString(),
+            online: false,
+          });
+        }
+      }, 20000);
     });
 
     setSocket(socket);
@@ -72,6 +114,11 @@ export const SocketProvider = ({ children }) => {
         enrollment
       );
       paymentEnrollment(enrollment);
+    });
+
+    socket.on("free-catraca", (response) => {
+      console.log("liberação da catraca", response);
+      handleFreeCatracaConfirm(data, settings, response?.reason);
     });
 
     socket.on("command", (command) => {
@@ -96,7 +143,7 @@ export const SocketProvider = ({ children }) => {
 
       const { data: response } = await login(ip, { login: username, password });
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
-
+      setSession(response?.session);
       const user = await createOrUpdateUsers(ip, response?.session, [
         {
           id: enrollment?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
@@ -119,7 +166,7 @@ export const SocketProvider = ({ children }) => {
         enrollmentId: enrollment.id,
         catracaId: catraca.id,
         user: Json.stringify(user),
-        image: Json.stringify(image),
+        picture: Json.stringify(image),
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
@@ -147,8 +194,8 @@ export const SocketProvider = ({ children }) => {
         initSocket(data);
       }
     };
-    bootstrap();
-  }, []);
+    if (settings) bootstrap();
+  }, [settings]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

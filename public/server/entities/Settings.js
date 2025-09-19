@@ -22,6 +22,14 @@ const Settings = new EntitySchema({
     password: {
       type: "varchar",
     },
+    ipLocal: {
+      type: 'varchar',
+      default: null
+    },
+    catraSideToEnter: {
+      type: 'varchar',
+      default: null
+    },
     customAuthMessage: {
       type: "varchar",
     },

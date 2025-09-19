@@ -12,6 +12,13 @@ import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "components/ui/Select";
+import {
   login,
   logout,
   customizarMensagemEventos,
@@ -21,6 +28,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useRevalidateToken } from "contexts/RevalidateToken";
 import { api } from "services/api";
+import { FreeCatracaModal } from "components/FreeCatracaModal";
 
 const CATRACA_MODELS = {
   idblock_next: "ID Block Next",
@@ -31,6 +39,7 @@ export default function AccessControlConfig({ onSetup }) {
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [isLoadingTest, setIsLoadingTest] = useState(false);
   const [ip, setIp] = useState("192.168.18.116");
+  const [ipLocal, setIpLocal] = useState("192.168.0.1");
   const [port, setPort] = useState(3000);
   const [username, setUsername] = useState("tsitech");
   const [password, setPassword] = useState("admin");
@@ -39,8 +48,11 @@ export default function AccessControlConfig({ onSetup }) {
   const [txtUserNotIdentifier, setTxtUserNotIdentifier] = useState(
     "Usuário não reconhecido"
   );
+  const [sideToEnter, setSideToEnter] = useState("0");
+  const [openCatracaModal, setOpenCatracaModal] = useState(false);
+
   const navigate = useNavigate();
-  const { data: catraca } = useRevalidateToken();
+  const { data: catraca, settings, setSettings } = useRevalidateToken();
 
   //   const [timeout, setTimeout] = useState(5);
   //   const [primeSF, setPrimeSF] = useState(false);
@@ -48,21 +60,21 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await api.get("/settings");
-
-      setIp(data?.ip || "192.168.18.116");
-      setPort(data?.port || 3000);
-      setUsername(data?.username || "admin");
-      setPassword(data?.password || "admin");
-      setTxtWelcome(data?.customAuthMessage || "Seja bem-vindo");
-      setTxtAccessDenied(data?.customDenyMessage || "Acesso negado");
+      setIp(settings?.ip);
+      setIpLocal(settings?.ipLocal);
+      setSideToEnter(settings?.catraSideToEnter);
+      setPort(settings?.port || 3000);
+      setUsername(settings?.username || "admin");
+      setPassword(settings?.password || "admin");
+      setTxtWelcome(settings?.customAuthMessage || "Seja bem-vindo");
+      setTxtAccessDenied(settings?.customDenyMessage || "Acesso negado");
       setTxtUserNotIdentifier(
-        data?.customNotIdentifiedMessage || "Usuário não reconhecido"
+        settings?.customNotIdentifiedMessage || "Usuário não reconhecido"
       );
     };
 
     load();
-  }, []);
+  }, [settings]);
 
   const handleTestComunication = async () => {
     setIsLoadingTest(true);
@@ -96,13 +108,13 @@ export default function AccessControlConfig({ onSetup }) {
       return;
     }
 
-    console.log(session);
     // pegar o IP da maquina onde esta o agente
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: "http://192.168.18.27:4000/api",
+      WEBHOOK_URL: `http://${ipLocal}:4000/api`,
       session,
+      catra_side_to_enter: sideToEnter,
     })
       .then(async () => {
         await customizarMensagemEventos(ip, session, {
@@ -131,15 +143,6 @@ export default function AccessControlConfig({ onSetup }) {
   const handleSaveTab = async () => {
     setIsLoadingSave(true);
     console.log("Salvando dados da Catraca");
-    // const data = {
-    //   ip,
-    //   port,
-    //   login: username,
-    //   password,
-    //   txtWelcome,
-    //   txtAccessDenied,
-    //   txtUserNotIdentifier,
-    // };
 
     try {
       const payload = {
@@ -155,9 +158,12 @@ export default function AccessControlConfig({ onSetup }) {
         enableCustomDenyMessage: "1",
         enableCustomNotIdentifiedMessage: "1",
         enableCustomMaskMessage: "1",
+        ipLocal,
+        catraSideToEnter: sideToEnter,
       };
 
-      await api.post("/settings", payload);
+      const { data: settingsData } = await api.post("/settings", payload);
+      setSettings(settingsData);
 
       const response = await login(ip, { login: username, password });
       const { session } = response?.data || {};
@@ -208,7 +214,7 @@ export default function AccessControlConfig({ onSetup }) {
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid grid-cols-[1fr_130px_130px] items-center gap-3">
           <div>
-            <Label>Endereço IP</Label>
+            <Label>Endereço IP da Catraca</Label>
 
             <Input
               value={ip}
@@ -292,6 +298,39 @@ export default function AccessControlConfig({ onSetup }) {
           </div>
         </div>
       </div>
+
+      <div className="mt-5 mb-2">
+        <Title>Operacional</Title>
+      </div>
+      <div className="flex flex-wrap items-end gap-4">
+        <div>
+          <Label>Endereço IP da Máquina</Label>
+          <Input
+            value={ipLocal}
+            onChange={function (e) {
+              setIpLocal(e.target.value);
+            }}
+            className="flex-1"
+          />
+        </div>
+        <div className="w-[150px]">
+          <Label>Sentido do Giro</Label>
+          <Select
+            onValueChange={function (val) {
+              setSideToEnter(val);
+            }}
+            defaultValue={sideToEnter}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o sentido" />
+            </SelectTrigger>
+            <SelectContent className="w-[150px]">
+              <SelectItem value="1">Anti-horário</SelectItem>
+              <SelectItem value="0">Horário</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <div>
         {/* <div className="space-y-2">
                   <Label>Tempo de liberação (segundo(s))</Label>
@@ -336,6 +375,13 @@ export default function AccessControlConfig({ onSetup }) {
       </div>
 
       <div className="mt-4 flex justify-end space-x-2">
+        <Button
+          onClick={() => setOpenCatracaModal(true)}
+          variant="secondary"
+          disabled={isLoading}
+        >
+          Liberar Catraca
+        </Button>
         <Button onClick={handleSetup} variant="success" disabled={isLoading}>
           {isLoadingSettings ? "Configurando..." : "Iniciar Configuração"}
         </Button>
@@ -343,6 +389,11 @@ export default function AccessControlConfig({ onSetup }) {
           {isLoadingSave ? "Salvando..." : "Salvar"}
         </Button>
       </div>
+
+      <FreeCatracaModal
+        isOpen={openCatracaModal}
+        onClose={() => setOpenCatracaModal(false)}
+      />
     </>
   );
 }

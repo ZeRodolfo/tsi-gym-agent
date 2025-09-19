@@ -47,6 +47,10 @@ const Catraca = new EntitySchema({
     clientSecret: {
       type: "varchar",
     },
+    lastSync: {
+      type: "datetime",
+      default: null,
+    },
     createdAt: {
       type: "datetime",
       createDate: true,

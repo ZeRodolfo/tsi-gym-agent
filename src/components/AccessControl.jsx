@@ -19,20 +19,37 @@ import {
 } from "services/controlId/idBlockNext";
 import { toast } from "react-toastify";
 import { useSocketLocal } from "contexts/SocketLocal";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchHistoricLastAccess } from "services/historic";
 
 export default function AccessControl() {
   const { socketLocal } = useSocketLocal();
-  const [user, setUser] = useState({});
+  const queryClient = useQueryClient();
 
+  // Busca inicial do histórico
+  const { data: historic, isLoading } = useQuery({
+    queryKey: ["historicLastAccess"],
+    queryFn: fetchHistoricLastAccess,
+    initialData: {}, // opcional, começa vazio
+  });
+
+  // Atualizações em tempo real pelo socket
   useEffect(() => {
-    if (socketLocal) {
-      socketLocal.on("access", (data) => {
-        console.log("📥 Status do acesso a catraca:", data);
-        // usar o zustand?
-        setUser(data);
-      });
-    }
-  }, [socketLocal]);
+    if (!socketLocal) return;
+
+    const handleAccess = (newAccess) => {
+      console.log("📥 Atualizando histórico via socket...");
+      if (newAccess?.historic) {
+        // adiciona novo item no topo
+        queryClient.setQueryData(["historicLastAccess"], () => {
+          return newAccess?.historic;
+        });
+      }
+    };
+
+    socketLocal.on("access", handleAccess);
+    return () => socketLocal.off("access", handleAccess);
+  }, [socketLocal, queryClient]);
   // useEffect(() => {
   //   const ip = "192.168.18.116";
   //   const username = "tsitech";
@@ -90,82 +107,78 @@ export default function AccessControl() {
   //   load();
   // }, []);
 
+  if (isLoading || !historic)
+    return (
+      <div className="w-full min-h-[316px] lg:min-h-[260px] flex justify-center items-center">
+        <Title className="">Aguardando novos acessos na Catraca...</Title>
+      </div>
+    );
+
   return (
     <>
-      {user?.enrollment?.id ? (
-        <>
-          <div className="text-center">
-            <Title className="text-xl">Último acesso na Catraca</Title>
-          </div>
-          <div className="w-full flex flex-wrap gap-3 mt-8">
-            <div>
-              <img
-                src={user?.enrollment?.picture || "/logo.png"}
-                alt="Logo da TSI Gym"
-                className="w-[120px] h-[120px] rounded-md border-2 border-primary"
-              />
-            </div>
-            <div className="flex flex-col gap-0">
-              <div>
-                <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
-                <span>
-                  {user?.enrollment?.code?.toString()?.padStart(6, "0") ||
-                    "000000"}
-                </span>
-              </div>
-              <div>
-                <Label className="font-semibold text-[16px]">
-                  Nome do usuário:
-                </Label>{" "}
-                <span>
-                  {user?.enrollment?.name || "Usuário não identificado"}
-                </span>
-              </div>
-              <div>
-                <Label className="font-semibold text-[16px]">
-                  Dt. Nascimento:
-                </Label>{" "}
-                <span>{user?.enrollment?.birthdate || "N/A"}</span>
-              </div>
-              <div>
-                <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
-                <span>
-                  {user?.enrollment?.address
-                    ? [
-                        user?.enrollment?.address?.street,
-                        user?.enrollment?.address?.number,
-                        user?.enrollment?.address?.city,
-                        user?.enrollment?.address?.state,
-                        user?.enrollment?.address?.zip,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")
-                    : "N/A"}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end mt-4 w-full items-center gap-2">
-            <Label className="font-semibold text-[16px]">
-              Horário do acesso:
-            </Label>{" "}
-            <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>
-            <Label
-              className={`text-xl font-bold border-none rounded-[5px] px-3 py-2 text-white ${
-                user?.event === 7 ? "bg-success" : "bg-primary"
-              }`}
-            >
-              {user?.event === 7
-                ? "LIBERADO"
-                : `NEGADO: ${user?.message || "Matrícula vencida"}`}
-            </Label>
-          </div>
-        </>
-      ) : (
-        <div className="w-full min-h-[316px] lg:min-h-[260px] flex justify-center items-center">
-          <Title className="">Aguardando novos acessos na Catraca...</Title>
+      <div className="text-center">
+        <Title className="text-xl">Último acesso na Catraca</Title>
+      </div>
+      <div className="w-full flex flex-wrap gap-3 mt-8">
+        <div>
+          <img
+            src={historic?.enrollment?.picture || "/logo.png"}
+            alt="Logo da TSI Gym"
+            className="w-[120px] h-[120px] rounded-md border-2 border-primary"
+          />
         </div>
-      )}
+        <div className="flex flex-col gap-0">
+          <div>
+            <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
+            <span>
+              {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
+                "000000"}
+            </span>
+          </div>
+          <div>
+            <Label className="font-semibold text-[16px]">
+              Nome do usuário:
+            </Label>{" "}
+            <span>
+              {historic?.enrollment?.name || "Usuário não identificado"}
+            </span>
+          </div>
+          <div>
+            <Label className="font-semibold text-[16px]">Dt. Nascimento:</Label>{" "}
+            <span>{historic?.enrollment?.birthdate || "N/A"}</span>
+          </div>
+          <div>
+            <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
+            <span>
+              {historic?.enrollment?.addressZipcode
+                ? [
+                    historic?.enrollment?.addressStreet,
+                    historic?.enrollment?.addressNumber,
+                    historic?.enrollment?.addressNeighborhood,
+                    historic?.enrollment?.addressCity,
+                    historic?.enrollment?.addressState,
+                    historic?.enrollment?.addressZipcode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : "N/A"}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-end mt-4 w-full items-center gap-2">
+        <Label className="font-semibold text-[16px]">Horário do acesso:</Label>{" "}
+        <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>
+        <Label
+          className={`text-xl font-bold border-none rounded-[5px] px-3 py-2 text-white ${
+            historic?.status === "success" ? "bg-success" : "bg-primary"
+          }`}
+        >
+          {historic?.status === "success"
+            ? "LIBERADO"
+            : `NEGADO: ${historic?.message || "Matrícula vencida"}`}
+        </Label>
+      </div>
     </>
   );
 }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { validateTokens } from "../services/catracas";
 import { Label } from "components/ui/Label";
 import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { getCatraca, checkTokens } from "services/catracas";
+import { getSettings } from "services/settings";
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_LOCAL_URL,
@@ -30,8 +31,9 @@ export default function SetupPage() {
 
   useEffect(() => {
     const checkToken = async () => {
-      const { data: catraca } = await api.get("/catracas/current");
-      const { data: settings } = await api.get("/settings");
+      const { data: catraca } = await getCatraca();
+      const { data: settings } = await getSettings();
+      console.log('SETUP', { catraca, settings });
       if (!settings?.id && !settings?.ip && catraca?.id)
         navigate("/parameters");
       else if (catraca?.id) navigate("/main");
@@ -43,7 +45,7 @@ export default function SetupPage() {
   const validateToken = async () => {
     try {
       const machineKey = await window.system.getMachineId();
-      const data = await api.post(`/catracas/validate-tokens`, {
+      const { data } = await checkTokens({
         clientId,
         clientSecret,
         machineKey,

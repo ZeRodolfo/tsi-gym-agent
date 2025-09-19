@@ -1,4 +1,5 @@
 require("reflect-metadata");
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
@@ -7,7 +8,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const { AppDataSource } = require("./ormconfig");
-
+const jobs = require("./jobs");
 const routers = require("./routes"); // Importa as rotas
 // const realtime = require("./realtime");
 
@@ -18,11 +19,12 @@ function startServer() {
     })
     .catch((err) => console.error("Erro ao conectar no banco de dados:", err));
 
+  jobs();
   const app = express();
   const server = http.createServer(app); // HTTP + Express
   const io = new Server(server, {
     cors: {
-      origin: ["http://localhost:3000"], // se usar React dev server
+      origin: ["http://localhost:3001"], // se usar React dev server
       methods: ["GET", "POST"],
     },
   });

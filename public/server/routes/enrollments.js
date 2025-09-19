@@ -4,7 +4,19 @@ const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
 
 const api = axios.create({
-  baseURL: "http://localhost:4003",
+  baseURL: process.env.BASE_URL || "http://localhost:4003",
+});
+
+router.get("/", async (req, res) => {
+  try {
+    const repo = AppDataSource.getRepository("Enrollment");
+    const enrollments = await repo.find();
+
+    return res.status(200).json(enrollments);
+  } catch (err) {
+    console.log("error", err);
+    return res.status(400).json({ message: err?.response?.data?.message });
+  }
 });
 
 router.get("/:identifieCatraca", async (req, res) => {
@@ -27,21 +39,37 @@ router.post("/", async (req, res) => {
     status,
     startDate,
     endDate,
+    extendedAt,
     identifierCatraca,
+    code,
     picture,
     student,
+    companyId,
+    branchId,
   } = req.body || {};
 
   const payload = {
     id,
+    code,
     name: student?.name,
     status,
     startDate,
     endDate,
+    extendedAt,
     identifierCatraca,
     picture,
+    companyId,
+    branchId,
     studentId: student?.id,
     studentName: student?.name,
+    birthdate: student?.person?.birthdate,
+    addressZipcode: student?.person?.address?.zipcode,
+    addressStreet: student?.person?.address?.street,
+    addressNumber: student?.person?.address?.number,
+    addressNeighborhood: student?.person?.address?.neighborhood,
+    addressComplement: student?.person?.address?.complement,
+    addressCity: student?.person?.address?.city,
+    addressState: student?.person?.address?.state,
   };
 
   try {

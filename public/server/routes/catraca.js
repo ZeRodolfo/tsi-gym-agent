@@ -5,7 +5,7 @@ const { AppDataSource } = require("../ormconfig");
 const { Catraca } = require("../entities/Catraca");
 
 const api = axios.create({
-  baseURL: "http://localhost:4003",
+  baseURL: process.env.BASE_URL || "http://localhost:4003",
 });
 
 router.get("/current", async (req, res) => {
@@ -13,7 +13,7 @@ router.get("/current", async (req, res) => {
     const repo = AppDataSource.getRepository("Catraca");
     const catracas = await repo.find();
 
-    return res.status(200).json(catracas?.[0]);
+    return res.status(200).json(catracas?.[0] || null);
   } catch (err) {
     console.log("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
@@ -52,7 +52,9 @@ router.post("/validate-tokens", async (req, res) => {
             data?.company?.companyName,
           clientId,
           clientSecret,
+          lastSync: new Date(),
         });
+      else catraca.lastSync = new Date();
 
       await repo.save(catraca);
       return res.status(201).json(catraca);

@@ -6,6 +6,8 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import MainPage from "./pages/MainPage";
 import SetupPage from "./pages/SetupPage";
 import ParametersPage from "./pages/ParametersPage";
@@ -13,35 +15,39 @@ import { RevalidateTokenProvider } from "contexts/RevalidateToken";
 import { SocketProvider } from "contexts/Socket";
 import { SocketLocalProvider } from "contexts/SocketLocal";
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-    <SocketProvider>
-      <SocketLocalProvider>
-        <ToastContainer />
-        <Router>
-          <Routes>
-            <Route
-              path="/main"
-              element={
-                <RevalidateTokenProvider>
-                  <MainPage />
-                </RevalidateTokenProvider>
-              }
-            />
-            <Route path="/setup" element={<SetupPage />} />
-            <Route
-              path="/parameters"
-              element={
-                <RevalidateTokenProvider>
-                  <ParametersPage />
-                </RevalidateTokenProvider>
-              }
-            />
-            <Route path="*" element={<Navigate to="/setup" />} />
-          </Routes>
-        </Router>
-      </SocketLocalProvider>
-    </SocketProvider>
+    <QueryClientProvider client={queryClient}>
+      <SocketProvider>
+        <SocketLocalProvider>
+          <ToastContainer />
+          <Router>
+            <Routes>
+              <Route
+                path="/main"
+                element={
+                  <RevalidateTokenProvider>
+                    <MainPage />
+                  </RevalidateTokenProvider>
+                }
+              />
+              <Route path="/setup" element={<SetupPage />} />
+              <Route
+                path="/parameters"
+                element={
+                  <RevalidateTokenProvider>
+                    <ParametersPage />
+                  </RevalidateTokenProvider>
+                }
+              />
+              <Route path="*" element={<Navigate to="/setup" />} />
+            </Routes>
+          </Router>
+        </SocketLocalProvider>
+      </SocketProvider>
+    </QueryClientProvider>
   );
 }
 

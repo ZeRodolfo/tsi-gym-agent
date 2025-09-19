@@ -9,42 +9,56 @@ const Historic = new EntitySchema({
       type: "int",
       generated: true,
     },
-    ip: {
+    studentId: {
       type: "varchar",
+      nullable: true,
     },
-    port: {
-      type: "int",
-    },
-    username: {
+    enrollmentId: {
       type: "varchar",
-      unique: true,
+      nullable: true,
     },
-    password: {
+    companyId: {
       type: "varchar",
+      nullable: true,
     },
-    customAuthMessage: {
+    branchId: {
       type: "varchar",
+      nullable: true,
     },
-    customDenyMessage: {
+    type: {
       type: "varchar",
+      default: "terminal", // terminal | manually
     },
-    customNotIdentifiedMessage: {
-      type: "varchar",
+    attendedAt: {
+      type: "datetime",
+      nullable: false,
     },
-    customMaskMessage: {
+    status: {
       type: "varchar",
+      nullable: false,
     },
-    enableCustomAuthMessage: {
+    message: {
       type: "varchar",
+      nullable: false,
     },
-    enableCustomDenyMessage: {
+    reasonId: {
       type: "varchar",
+      nullable: true,
     },
-    enableCustomNotIdentifiedMessage: {
-      type: "varchar",
+    synced: {
+      type: "boolean",
+      default: false,
     },
-    enableCustomMaskMessage: {
-      type: "varchar",
+  },
+  relations: {
+    enrollment: {
+      type: "many-to-one",
+      target: "Enrollment",
+      joinColumn: {
+        name: "enrollmentId", // FK na tabela historics
+      },
+      inverseSide: "historics",
+      onDelete: "CASCADE",
     },
   },
 });

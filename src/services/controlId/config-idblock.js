@@ -18,7 +18,7 @@ async function fcgi(path, payload = {}, sessionId) {
 export default async function main(payload = {}) {
   DEVICE_IP = payload.DEVICE_IP;
   DEVICE_PASSWORD = payload.DEVICE_PASSWORD;
-  WEBHOOK_URL = "http://192.168.18.27:4000/api"; //payload.WEBHOOK_URL;
+  WEBHOOK_URL = payload.WEBHOOK_URL // "http://192.168.18.27:4000/api";
   const session = payload.session;
 
   try {
@@ -99,12 +99,12 @@ export default async function main(payload = {}) {
     );
 
     // 6) (Opcional) definir direção de entrada
-    console.log("6) Definindo catra_side_to_enter = clockwise");
+    console.log("6) Definindo catra_side_to_enter = clockwise | 0 = horario | 1 = anti-horario");
     await fcgi(
       "set_configuration.fcgi",
       {
         sec_box: {
-          catra_side_to_enter: "0",
+          catra_side_to_enter: payload?.catra_side_to_enter || "0",
         },
       },
       session

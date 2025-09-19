@@ -1,62 +1,106 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import CompanyHeader from "components/CompanyHeader";
-import { validateTokens } from "services/catracas";
+import { getCatraca, checkTokens } from "services/catracas";
+import { getSettings } from "services/settings";
 import Loading from "components/ui/Loading";
-import { io, Socket } from "socket.io-client";
-// import { toast } from "sonner";
+import { toast } from "react-toastify";
+import { startOfDay } from "date-fns";
+import { fetchSync, sendSyncHistoricAccess } from "services/sync";
 
 const RevalidateTokenContext = createContext(null);
 
 export const RevalidateTokenProvider = ({ children }) => {
   const [tokenData, setTokenData] = useState(null);
+  const [settingsData, setSettingsData] = useState(null);
   const navigate = useNavigate();
+  const [sync, setSync] = useState(false);
+
+  const handleSync = useCallback(
+    async (content = null) => {
+      setSync(true);
+
+      try {
+        let canSync = !!content?.id;
+        if (!content) {
+          const machineKey = await window.system.getMachineId();
+          const { data } = await checkTokens({
+            clientId: tokenData?.clientId,
+            clientSecret: tokenData?.clientSecret,
+            machineKey,
+            machineName: "PC Name",
+          });
+
+          canSync = !!data?.id;
+          setTokenData(data);
+        }
+
+        if (canSync) {
+          await fetchSync();
+          await sendSyncHistoricAccess();
+
+          toast.success("Sincronização realizada com sucesso!");
+        }
+      } catch (error) {
+        console.log("err", error);
+        toast.error("Erro ao sincronizar. Por favor, tente novamente.");
+      } finally {
+        setSync(false);
+      }
+    },
+    [tokenData]
+  );
 
   // 🔹 Carrega e valida token salvo localmente
   const loadToken = async () => {
-    const localToken = await window.api.getTokenData();
+    const { data: catraca } = await getCatraca();
+    const { data: settings } = await getSettings();
 
-    if (!localToken?.id) {
+    if (!catraca?.id) {
       navigate("/setup");
       return null;
     }
+    setTokenData(catraca);
 
+    if (!settings?.id && !settings?.ip) {
+      navigate("/parameters");
+      return null;
+    }
+
+    setSettingsData(settings);
     const machineKey = await window.system.getMachineId();
-    const lastCheck = new Date(localToken.lastCheck);
-    const today = new Date();
+    const today = startOfDay(new Date());
+    const lastSync = startOfDay(catraca?.lastSync);
 
     // 🔹 Só valida uma vez por dia no servidor
-    if (today.toDateString() !== lastCheck.toDateString()) {
+    if (today?.getTime() > lastSync?.getTime()) {
       try {
-        const validated = await validateTokens(
-          localToken.tokens.clientId,
-          localToken.tokens.clientSecret,
-          { key: machineKey, name: "PC name" }
-        );
+        const { data: validated } = await checkTokens({
+          clientId: catraca.clientId,
+          clientSecret: catraca.clientSecret,
+          machineKey,
+          machineName: "PC Name",
+        });
 
         if (!validated?.id) {
           navigate("/setup");
           return null;
         }
 
-        const updatedData = { ...validated, tokens: localToken.tokens };
-        setTokenData(updatedData);
-
-        await window.api.saveTokenData({
-          ...updatedData,
-          lastCheck: new Date().toISOString(),
-        });
-
-        return updatedData;
+        handleSync(validated);
+        return catraca;
       } catch (err) {
         console.error("Erro ao validar token:", err);
         navigate("/setup");
         return null;
       }
     }
-
-    setTokenData(localToken);
-    return localToken;
   };
 
   useEffect(() => {
@@ -66,7 +110,16 @@ export const RevalidateTokenProvider = ({ children }) => {
   if (!tokenData?.id) return <Loading />;
 
   return (
-    <RevalidateTokenContext.Provider value={{ data: tokenData, setTokenData }}>
+    <RevalidateTokenContext.Provider
+      value={{
+        data: tokenData,
+        settings: settingsData,
+        setTokenData,
+        setSettings: setSettingsData,
+        syncing: sync,
+        handleSync,
+      }}
+    >
       <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
       {children}
     </RevalidateTokenContext.Provider>

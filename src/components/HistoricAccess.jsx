@@ -1,21 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
 import { format } from "date-fns";
+import { useSocketLocal } from "contexts/SocketLocal";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchHistoric } from "services/historic";
 
 export default function HistoricAccess() {
-  const [users, setUsers] = useState([]);
+  const { socketLocal } = useSocketLocal();
+  const queryClient = useQueryClient();
 
+  // Busca inicial do histórico
+  const { data: historics, isLoading } = useQuery({
+    queryKey: ["historicAccess"],
+    queryFn: fetchHistoric,
+    initialData: [], // opcional, começa vazio
+  });
+
+  // Atualizações em tempo real pelo socket
   useEffect(() => {
-    const load = async () => {
-      const data = await window.api.getHistoricUserAccessData();
-      if (data) setUsers(data || []);
+    if (!socketLocal) return;
+
+    const handleAccess = (newAccess) => {
+      console.log("📥 Atualizando histórico via socket...");
+
+      if (newAccess?.historic) {
+        // adiciona novo item no topo
+        queryClient.setQueryData(["historicAccess"], (old = []) => {
+          return [newAccess?.historic, ...old].slice(0, 25); // limite opcional de 25
+        });
+      }
     };
 
-    load();
-  }, []);
+    socketLocal.on("access", handleAccess);
+    return () => socketLocal.off("access", handleAccess);
+  }, [socketLocal, queryClient]);
 
-  if (!users?.length)
+  if (isLoading || !historics?.length)
     return (
       <div className="w-full min-h-[316px] lg:min-h-[260px] flex justify-center items-center">
         <Title className="">Aguardando novos acessos na Catraca...</Title>
@@ -27,12 +48,12 @@ export default function HistoricAccess() {
       <div className="text-center">
         <Title className="text-xl">Histórico de acessos na Catraca</Title>
       </div>
-      {users?.map((user, index) => (
+      {historics?.map((historic, index) => (
         <div className="w-full flex flex-col gap-2" key={index}>
           <div className="w-full flex flex-wrap gap-3 mt-8">
             <div>
               <img
-                src="/logo.png"
+                src={historic?.enrollment?.picture || "/logo.png"}
                 alt="Logo da TSI Gym"
                 className="w-[120px] h-[120px] rounded-md border-2 border-primary"
               />
@@ -41,7 +62,7 @@ export default function HistoricAccess() {
               <div>
                 <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
                 <span>
-                  {user?.enrollment?.code?.toString()?.padStart(6, "0") ||
+                  {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
                     "000000"}
                 </span>
               </div>
@@ -49,24 +70,27 @@ export default function HistoricAccess() {
                 <Label className="font-semibold text-[16px]">
                   Nome do usuário:
                 </Label>{" "}
-                <span>{user?.name || "Usuário não identificado"}</span>
+                <span>
+                  {historic?.enrollment?.name || "Usuário não identificado"}
+                </span>
               </div>
               <div>
                 <Label className="font-semibold text-[16px]">
                   Dt. Nascimento:
                 </Label>{" "}
-                <span>{user?.birthdate || "N/A"}</span>
+                <span>{historic?.enrollment?.birthdate || "N/A"}</span>
               </div>
               <div>
                 <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
                 <span>
-                  {user?.address
+                  {historic?.enrollment?.addressZipcode
                     ? [
-                        user.address.street,
-                        user.address.number,
-                        user.address.city,
-                        user.address.state,
-                        user.address.zip,
+                        historic?.enrollment?.addressStreet,
+                        historic?.enrollment?.addressNumber,
+                        historic?.enrollment?.addressNeighborhood,
+                        historic?.enrollment?.addressCity,
+                        historic?.enrollment?.addressState,
+                        historic?.enrollment?.addressZipcode,
                       ]
                         .filter(Boolean)
                         .join(", ")
@@ -80,12 +104,12 @@ export default function HistoricAccess() {
             <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>
             <Label
               className={`text-sm font-bold border-none rounded-[5px] px-2 py-1 text-white ${
-                user?.access?.status === "ok" ? "bg-success" : "bg-primary"
+                historic?.status === "success" ? "bg-success" : "bg-primary"
               }`}
             >
-              {user?.access?.status === "ok"
+              {historic?.status === "success"
                 ? "LIBERADO"
-                : `NEGADO: ${user?.access?.message || "Matrícula vencida"}`}
+                : `NEGADO: ${historic?.message || "Matrícula vencida"}`}
             </Label>
           </div>
         </div>

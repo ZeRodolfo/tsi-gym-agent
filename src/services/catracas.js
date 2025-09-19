@@ -1,3 +1,5 @@
+import { api } from "./api";
+
 export const validateTokens = async (clientId, clientSecret, machine) => {
   try {
     const response = await fetch(
@@ -14,4 +16,19 @@ export const validateTokens = async (clientId, clientSecret, machine) => {
     console.error("Error validating token:", error);
     throw error;
   }
+};
+
+export const checkTokens = async (
+  payload = {
+    clientId: "",
+    clientSecret: "",
+    machineKey: "",
+    machineName: "PC Name",
+  }
+) => {
+  return await api.post(`/catracas/validate-tokens`, payload);
+};
+
+export const getCatraca = async () => {
+  return await api.get("/catracas/current");
 };

@@ -8,7 +8,7 @@ export const SelectTrigger = React.forwardRef(function (props, ref) {
     <SelectPrimitive.Trigger
       ref={ref}
       className={
-        "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring " +
+        "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring " +
         className
       }
       {...rest}
@@ -26,7 +26,7 @@ export const SelectContent = React.forwardRef(function (props, ref) {
     <SelectPrimitive.Content
       ref={ref}
       className={
-        "overflow-hidden rounded-xl bg-popover text-popover-foreground " +
+        "overflow-hidden w-auto bg-white rounded-xl bg-popover text-popover-foreground " +
         className
       }
       {...rest}
@@ -46,9 +46,9 @@ export const SelectItem = React.forwardRef(function (props, ref) {
       {...rest}
     >
       <SelectPrimitive.ItemText {...rest} />
-      <SelectPrimitive.ItemIndicator className="absolute left-2 inline-flex items-center">
+      {/* <SelectPrimitive.ItemIndicator className="w-full absolute left-2 inline-flex items-center">
         <Check className="h-4 w-4" />
-      </SelectPrimitive.ItemIndicator>
+      </SelectPrimitive.ItemIndicator> */}
     </SelectPrimitive.Item>
   );
 });

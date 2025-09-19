@@ -2,7 +2,13 @@ const express = require("express");
 const catracaRoutes = require("./catraca"); // Importa as rotas
 const settingsRoutes = require("./settings"); // Importa as rotas
 const enrollmentsRoutes = require("./enrollments"); // Importa as rotas
+const historicsRoutes = require("./historics"); // Importa as rotas
+const syncRoutes = require("./sync"); // Importa as rotas
 const { AppDataSource } = require("../ormconfig");
+
+function stripTime(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
 
 const router = express.Router();
 
@@ -122,7 +128,6 @@ router.post("/biometria", async (req, res) => {
 });
 
 router.post("/new_user_identified.fcgi", async (req, res) => {
-  // console.log("AKI 22222222222222222", req.body);
   const io = req.app.get("io");
   const {
     user_id: userIdStr,
@@ -174,14 +179,15 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     },
   });
 
-  const repo = AppDataSource.getRepository("Enrollment");
-  const enrollment = await repo.findOneBy({
+  const repoEnrollment = AppDataSource.getRepository("Enrollment");
+  const repoHistoric = AppDataSource.getRepository("Historic");
+  const enrollment = await repoEnrollment.findOneBy({
     identifierCatraca: userId,
   });
 
   if (!enrollment) {
     const message = "Matrícula não localizada. Dirija-se a Recepção.";
-    io.emit("access", { enrollment, event: 6, message });
+    io.emit("access", { enrollment, status: "not_found", message });
 
     return res.json({
       result: {
@@ -193,9 +199,47 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     });
   }
 
+  const { studentId, id, companyId, branchId } = enrollment || {};
+  const payloadHistoric = {
+    studentId,
+    enrollment: { id }, // já cria o vínculo via FK
+    companyId,
+    branchId,
+    type: 'terminal',
+    attendedAt: new Date(),
+  };
+
   if (enrollment?.status === "pending") {
     const message = "Matrícula pendente. Dirija-se a Recepção.";
-    io.emit("access", { enrollment, event: 6, message });
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "pending",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
+
+    return res.json({
+      result: {
+        event: 6,
+        message,
+        user_id: userId,
+        user_name: userName || user?.name,
+        user_image: user_has_image === "1",
+        portal_id: portalId,
+      },
+    });
+  }
+
+  if (enrollment?.status === "pending_registration_release") {
+    const message = "Matrícula pendente de aprovação. Dirija-se a Recepção.";
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "pending_registration_release",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
 
     return res.json({
       result: {
@@ -211,7 +255,13 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
   if (enrollment?.status === "locked") {
     const message = "Matrícula trancada. Dirija-se a Recepção.";
-    io.emit("access", { enrollment, event: 6, message });
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "locked",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
 
     return res.json({
       result: {
@@ -227,7 +277,13 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
   if (enrollment?.status === "expired") {
     const message = "Matrícula expirada. Dirija-se a Recepção.";
-    io.emit("access", { enrollment, event: 6, message });
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "expired",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
 
     return res.json({
       result: {
@@ -243,7 +299,13 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
   if (enrollment?.status === "canceled") {
     const message = "Matrícula cancelada. Dirija-se a Recepção.";
-    io.emit("access", { enrollment, event: 6, message });
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "canceled",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
 
     return res.json({
       result: {
@@ -256,14 +318,51 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       },
     });
   }
-  console.log("enrollment", { enrollment });
-  // checar matricula, status
 
-  io.emit("access", {
-    enrollment,
-    event: 7,
+  // checar matricula, status
+  const extendedAt = enrollment.extendedAt
+    ? new Date(enrollment.extendedAt)
+    : null;
+  const endDate = new Date(enrollment.endDate);
+  const today = stripTime(new Date());
+
+  const endDateOnly = stripTime(endDate);
+  const extendedAtOnly = extendedAt ? stripTime(extendedAt) : null;
+
+  const isExpiredNormal = endDateOnly < today;
+  const isExpiredExtended = extendedAtOnly && extendedAtOnly < today; // expira só se passou do dia estendido
+
+  if (isExpiredNormal || isExpiredExtended) {
+    const message = "Matrícula expirada. Dirija-se à recepção.";
+    const historic = repoHistoric.create({
+      ...payloadHistoric,
+      status: "expired",
+      message,
+    });
+    await repo.save(historic);
+    io.emit("access", { ...historic, enrollment });
+
+    return res.json({
+      result: {
+        event: 6,
+        message,
+        user_id: userId,
+        user_name: userName || user?.name,
+        user_image: user_has_image === "1",
+        portal_id: portalId,
+      },
+    });
+  }
+
+  // salvar historico
+  const historic = repoHistoric.create({
+    ...payloadHistoric,
+    status: "success",
     message: `Bem-vindo, ${userName || user?.name}!`,
   });
+  await repo.save(historic);
+
+  io.emit("access", { ...historic, enrollment });
 
   // Se atingiu aqui, libera o acesso
   return res.json({
@@ -282,4 +381,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 router.use("/catracas", catracaRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/enrollments", enrollmentsRoutes);
+router.use("/historic", historicsRoutes);
+router.use("/sync", syncRoutes);
 module.exports = router;
