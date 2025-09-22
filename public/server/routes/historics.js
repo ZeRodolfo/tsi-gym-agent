@@ -49,6 +49,7 @@ router.post("/", async (req, res) => {
     type,
     status,
     message,
+    emit,
   } = req.body || {};
 
   const payload = {
@@ -60,7 +61,7 @@ router.post("/", async (req, res) => {
     status,
     message,
     reasonId,
-    type
+    type,
   };
 
   if (!enrollmentId) delete payload.enrollment;
@@ -69,6 +70,10 @@ router.post("/", async (req, res) => {
     const repo = AppDataSource.getRepository("Historic");
     const historic = repo.create(payload);
     await repo.save(historic);
+    if (emit) {
+      const io = req.app.get("io");
+      io.emit(emit, historic);
+    }
     return res.status(201).json(historic);
   } catch (err) {
     console.log("error", err);

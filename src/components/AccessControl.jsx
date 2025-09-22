@@ -27,22 +27,26 @@ export default function AccessControl() {
   const queryClient = useQueryClient();
 
   // Busca inicial do histórico
-  const { data: historic, isLoading } = useQuery({
+  const {
+    data: historic,
+    isLoading,
+    isRefetching,
+  } = useQuery({
     queryKey: ["historicLastAccess"],
     queryFn: fetchHistoricLastAccess,
     initialData: {}, // opcional, começa vazio
   });
 
+  console.log({ isLoading, isRefetching });
   // Atualizações em tempo real pelo socket
   useEffect(() => {
-    if (!socketLocal) return;
+    console.log({ socketLocal });
 
     const handleAccess = (newAccess) => {
-      console.log("📥 Atualizando histórico via socket...");
-      if (newAccess?.historic) {
-        // adiciona novo item no topo
+      console.log("📥 Atualizando histórico via socket...", newAccess);
+      if (newAccess) {
         queryClient.setQueryData(["historicLastAccess"], () => {
-          return newAccess?.historic;
+          return newAccess;
         });
       }
     };
@@ -50,6 +54,7 @@ export default function AccessControl() {
     socketLocal.on("access", handleAccess);
     return () => socketLocal.off("access", handleAccess);
   }, [socketLocal, queryClient]);
+
   // useEffect(() => {
   //   const ip = "192.168.18.116";
   //   const username = "tsitech";
@@ -127,48 +132,66 @@ export default function AccessControl() {
             className="w-[120px] h-[120px] rounded-md border-2 border-primary"
           />
         </div>
-        <div className="flex flex-col gap-0">
-          <div>
-            <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
-            <span>
-              {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
-                "000000"}
-            </span>
+        {historic?.type === "terminal" ? (
+          <div className="flex flex-col gap-0">
+            <div>
+              <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
+              <span>
+                {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
+                  "000000"}
+              </span>
+            </div>
+            <div>
+              <Label className="font-semibold text-[16px]">
+                Nome do usuário:
+              </Label>{" "}
+              <span>
+                {historic?.enrollment?.name || "Usuário não identificado"}
+              </span>
+            </div>
+            <div>
+              <Label className="font-semibold text-[16px]">
+                Dt. Nascimento:
+              </Label>{" "}
+              <span>{historic?.enrollment?.birthdate || "N/A"}</span>
+            </div>
+            <div>
+              <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
+              <span>
+                {historic?.enrollment?.addressZipcode
+                  ? [
+                      historic?.enrollment?.addressStreet,
+                      historic?.enrollment?.addressNumber,
+                      historic?.enrollment?.addressNeighborhood,
+                      historic?.enrollment?.addressCity,
+                      historic?.enrollment?.addressState,
+                      historic?.enrollment?.addressZipcode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "N/A"}
+              </span>
+            </div>
           </div>
-          <div>
-            <Label className="font-semibold text-[16px]">
-              Nome do usuário:
-            </Label>{" "}
-            <span>
-              {historic?.enrollment?.name || "Usuário não identificado"}
-            </span>
+        ) : (
+          <div className="flex flex-col gap-0">
+            <div>
+              <Label className="font-semibold text-[16px]">Ação manual</Label>{" "}
+            </div>
+            <div>
+              <Label className="font-semibold text-[16px]">Motivo:</Label>{" "}
+              <span>{historic?.message}</span>
+            </div>
           </div>
-          <div>
-            <Label className="font-semibold text-[16px]">Dt. Nascimento:</Label>{" "}
-            <span>{historic?.enrollment?.birthdate || "N/A"}</span>
-          </div>
-          <div>
-            <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
-            <span>
-              {historic?.enrollment?.addressZipcode
-                ? [
-                    historic?.enrollment?.addressStreet,
-                    historic?.enrollment?.addressNumber,
-                    historic?.enrollment?.addressNeighborhood,
-                    historic?.enrollment?.addressCity,
-                    historic?.enrollment?.addressState,
-                    historic?.enrollment?.addressZipcode,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")
-                : "N/A"}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
       <div className="flex justify-end mt-4 w-full items-center gap-2">
         <Label className="font-semibold text-[16px]">Horário do acesso:</Label>{" "}
-        <span> {format(new Date(), "dd/MM/yyyy HH:mm:ss")}</span>
+        <span>
+          {historic?.attendedAt
+            ? format(historic?.attendedAt, "dd/MM/yyyy HH:mm:ss")
+            : "-"}
+        </span>
         <Label
           className={`text-xl font-bold border-none rounded-[5px] px-3 py-2 text-white ${
             historic?.status === "success" ? "bg-success" : "bg-primary"
@@ -176,7 +199,9 @@ export default function AccessControl() {
         >
           {historic?.status === "success"
             ? "LIBERADO"
-            : `NEGADO: ${historic?.message || "Matrícula vencida"}`}
+            : historic?.type === "terminal"
+            ? `NEGADO: ${historic?.message || "Matrícula vencida"}`
+            : "NEGADO"}
         </Label>
       </div>
     </>

@@ -20,10 +20,14 @@ module.exports = async function job() {
 
     console.log(`Enviando ${unsynced.length} históricos...`);
 
+    const items = [...unsynced];
     // Chama sua API (ajuste a URL)
-    const response = await api.post("/lessons-attendances/sync", unsynced);
+    const response = await api.post(
+      "/lessons-attendances/sync",
+      items?.map(({ synced, ...item }) => item)
+    );
 
-    if (response.status === 200) {
+    if (response.status === 201) {
       // Marca como sincronizado
       for (const history of unsynced) {
         history.synced = true;

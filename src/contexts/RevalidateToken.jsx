@@ -39,6 +39,8 @@ export const RevalidateTokenProvider = ({ children }) => {
 
           canSync = !!data?.id;
           setTokenData(data);
+        } else {
+          setTokenData((state) => ({ ...state, lastSync: new Date() }));
         }
 
         if (canSync) {
@@ -106,6 +108,24 @@ export const RevalidateTokenProvider = ({ children }) => {
   useEffect(() => {
     loadToken();
   }, []);
+
+  useEffect(() => {
+    let heartbeat;
+
+    if (tokenData) {
+      heartbeat = setInterval(async () => {
+        const today = startOfDay(new Date());
+        const lastSync = startOfDay(tokenData?.lastSync);
+
+        // 🔹 Só valida uma vez por dia no servidor
+        if (today?.getTime() > lastSync?.getTime()) handleSync();
+      }, 60_000 * 5);
+    }
+
+    return () => {
+      clearInterval(heartbeat);
+    };
+  }, [tokenData]);
 
   if (!tokenData?.id) return <Loading />;
 

@@ -6,16 +6,12 @@ import {
 } from "services/controlId/idBlockNext";
 import { api } from "services/api";
 
-export const handleFreeCatracaConfirm = async (catraca, settings, reason) => {
-  await api.post("/historic", {
-    type: "manually",
-    reasonId: reason?.id,
-    companyId: catraca?.companyId,
-    branchId: catraca?.branchId,
-    status: "success",
-    message: `Liberação manual - ${reason.label}`,
-  });
-
+export const handleFreeCatracaConfirm = async (
+  catraca,
+  settings,
+  reason,
+  onClose = () => null
+) => {
   if (!settings?.id)
     return toast.error(
       "Não foi possível prosseguir com a solicitação. Por favor, realize a sincronização."
@@ -35,23 +31,32 @@ export const handleFreeCatracaConfirm = async (catraca, settings, reason) => {
     } else {
       await liberarGiroSentidoAntiHorario(settings?.ip, session);
     }
-    // send api
+
     await api.post("/historic", {
-      type: "manualy",
+      type: "manually",
       reasonId: reason?.id,
-      studentId,
-      enrollmentId,
       companyId: catraca?.companyId,
       branchId: catraca?.branchId,
       status: "success",
       message: `Liberação manual - ${reason.label}`,
+      emit: "access",
     });
 
     toast.success("Catraca liberada com sucesso.");
-    onClose();
+    onClose?.();
   } catch (err) {
+    await api.post("/historic", {
+      type: "manually",
+      reasonId: reason?.id,
+      companyId: catraca?.companyId,
+      branchId: catraca?.branchId,
+      status: "error",
+      message: `Não foi possível se comunicar com a catraca - ${reason.label}`,
+      emit: "access",
+    });
     toast.error(
       "Não foi possível liberar a catraca. Por favor, verifique as configurações ou realize a sincronização."
     );
+    onClose?.();
   }
 };

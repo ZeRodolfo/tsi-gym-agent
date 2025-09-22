@@ -47,7 +47,9 @@ export const FreeCatracaModal = ({ isOpen, onClose }) => {
             <button
               key={reason.id}
               type="button"
-              onClick={() => handleFreeCatracaConfirm(data, settings, reason)}
+              onClick={() =>
+                handleFreeCatracaConfirm(data, settings, reason, onClose)
+              }
               className="px-5 py-7 bg-primary hover:bg-primary-700 text-white rounded"
             >
               {reason?.label}

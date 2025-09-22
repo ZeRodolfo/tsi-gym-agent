@@ -6,57 +6,8 @@ import { checkTokens } from "services/catracas";
 import { fetchSync, sendSyncHistoricAccess } from "services/sync";
 import { useRevalidateToken } from "contexts/RevalidateToken";
 
-export default function CompanyHeader({
-  name,
-  companyName,
-  clientId,
-  clientSecret,
-  lastSync,
-  onChangeToken,
-}) {
+export default function CompanyHeader({ name, companyName, lastSync }) {
   const { syncing, handleSync } = useRevalidateToken();
-  // const [sync, setSync] = useState(false);
-
-  // const handleSync = async () => {
-  //   setSync(true);
-
-  //   try {
-  //     const machineKey = await window.system.getMachineId();
-  //     const { data } = await checkTokens({
-  //       clientId,
-  //       clientSecret,
-  //       machineKey,
-  //       machineName: "PC Name",
-  //     });
-
-  //     onChangeToken(data);
-
-  //     if (data?.id) {
-  //       await fetchSync();
-  //       const send = await sendSyncHistoricAccess();
-  //       console.log("send", send);
-
-  //       // const payload = {
-  //       //   ...data,
-  //       //   tokens,
-  //       //   info: "dados da empresa no servidor",
-  //       //   lastSync: new Date().toISOString(),
-  //       // };
-
-  //       // window.api.saveTokenData(payload);
-  //       // onChangeToken(payload);
-  //       toast.success("Sincronização realizada com sucesso!");
-  //     }
-  //   } catch (error) {
-  //     console.log("err", error);
-  //     toast.error("Erro ao sincronizar. Por favor, tente novamente.");
-
-  //     // window.api.saveTokenData(null);
-  //     // onChangeToken(null);
-  //   } finally {
-  //     setSync(false);
-  //   }
-  // };
 
   return (
     <div>

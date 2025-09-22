@@ -82,15 +82,25 @@ export const SocketProvider = ({ children }) => {
         try {
           const config = await verifySession(settings?.ip, session);
           if (config)
-            socket.emit("catraca_status", {
+            socket.emit("status", {
               timestamp: new Date().toISOString(),
-              online: true,
+              agent: {
+                online: true,
+              },
+              machine: {
+                online: true,
+              },
             });
         } catch (err) {
           console.log("Offline");
-          socket.emit("catraca_status", {
+          socket.emit("status", {
             timestamp: new Date().toISOString(),
-            online: false,
+            agent: {
+              online: true,
+            },
+            machine: {
+              online: false,
+            },
           });
         }
       }, 20000);
@@ -116,7 +126,7 @@ export const SocketProvider = ({ children }) => {
       paymentEnrollment(enrollment);
     });
 
-    socket.on("free-catraca", (response) => {
+    socket.on("catraca_free", (response) => {
       console.log("liberação da catraca", response);
       handleFreeCatracaConfirm(data, settings, response?.reason);
     });

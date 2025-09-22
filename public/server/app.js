@@ -25,7 +25,7 @@ function startServer() {
   const io = new Server(server, {
     cors: {
       origin: ["http://localhost:3001"], // se usar React dev server
-      methods: ["GET", "POST"],
+      // methods: ["GET", "POST"],
     },
   });
 
