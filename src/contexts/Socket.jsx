@@ -218,10 +218,6 @@ export const SocketProvider = ({ children }) => {
   };
 
   const updatePictureByPerson = async (person) => {
-    // console.log(
-    //   "Iniciando atualização da foto do usuário na catraca...",
-    //   person
-    // );
     try {
       const enrollment = await api.patch("/enrollments/update-picture", person);
       if (!enrollment) {
@@ -238,6 +234,14 @@ export const SocketProvider = ({ children }) => {
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
       setSession(response?.session);
 
+      // verificar se será necessário criar um u
+      await createOrUpdateUsers(ip, response?.session, [
+        {
+          id: person?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
+          name: enrollment?.name,
+          registration: "",
+        },
+      ]);
       await addFace(
         ip,
         response?.session,
