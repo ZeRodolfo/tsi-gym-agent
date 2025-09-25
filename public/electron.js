@@ -49,7 +49,6 @@ app.on("activate", () => {
 
 // IPC para salvar token
 ipcMain.on("save-token", (event, data) => {
-  console.log("save", data);
   fs.writeFileSync(
     tokenPath,
     JSON.stringify({ ...data, lastCheck: new Date().toISOString() })
@@ -59,7 +58,6 @@ ipcMain.on("save-token", (event, data) => {
 // IPC para ler token
 ipcMain.handle("get-token", () => {
   const exists = fs.existsSync(tokenPath);
-  console.log("exists", exists);
   return fs.existsSync(tokenPath)
     ? JSON.parse(fs.readFileSync(tokenPath, "utf-8"))
     : null;
@@ -86,7 +84,6 @@ ipcMain.handle("logout-catraca", () => {
     // fs.writeFileSync(catracaPath, null);
     // fs.writeFileSync(tokenPath, null);
     // fs.writeFileSync(historicUserAccessPath, null);
-    console.log("OI");
     return true;
   } catch (err) {
     console.error("Erro ao remover arquivos:", err);

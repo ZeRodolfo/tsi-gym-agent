@@ -1,11 +1,11 @@
 const express = require("express");
-const axios = require("axios");
+// const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
 
-const api = axios.create({
-  baseURL: process.env.BASE_URL || "http://localhost:4003",
-});
+// const api = axios.create({
+//   baseURL: process.env.BASE_URL || "http://localhost:4003",
+// });
 
 router.get("/", async (req, res) => {
   try {
@@ -46,6 +46,7 @@ router.post("/", async (req, res) => {
     student,
     companyId,
     branchId,
+    synced,
   } = req.body || {};
 
   const payload = {
@@ -70,6 +71,7 @@ router.post("/", async (req, res) => {
     addressComplement: student?.person?.address?.complement,
     addressCity: student?.person?.address?.city,
     addressState: student?.person?.address?.state,
+    synced,
   };
 
   try {
@@ -84,6 +86,30 @@ router.post("/", async (req, res) => {
     }
 
     return res.status(201).json(enrollment);
+  } catch (err) {
+    console.log("error", err);
+    return res.status(400).json({ message: err?.response?.data?.message });
+  }
+});
+
+router.patch("/update-picture", async (req, res) => {
+  const { identifierCatraca, picture } = req.body || {};
+
+  try {
+    const repo = AppDataSource.getRepository("Enrollment");
+    let enrollment = await repo.findOneBy({ identifierCatraca });
+
+    if (!enrollment) {
+      console.log(
+        "Matrícula não encontrado para o identificador: " + identifierCatraca
+      );
+      return null;
+    }
+
+    const payload = { ...enrollment, picture };
+    await repo.save(payload);
+
+    return res.status(200).json(payload);
   } catch (err) {
     console.log("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });

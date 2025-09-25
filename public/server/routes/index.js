@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.post("/login", async (req, res) => {
   const { login, password, ip } = req.body;
-  console.log("Tentativa de acesso:", { login, password });
+  console.log("Tentativa de acesso na catraca");
 
   const response = await fetch(
     `http://${ip}/login.fcgi?login=${login}&password=${password}`,
@@ -169,16 +169,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
   //   } });
   // }
 
-  console.log("response", {
-    result: {
-      event: 7,
-      user_id: userId,
-      portal_id: portalId,
-      actions: [{ action: "catra", parameters: "allow=clockwise" }],
-      message: `Bem-vindo, ${userName || user?.name}!`,
-    },
-  });
-
   const repoEnrollment = AppDataSource.getRepository("Enrollment");
   const repoHistoric = AppDataSource.getRepository("Historic");
   const enrollment = await repoEnrollment.findOneBy({
@@ -205,7 +195,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     enrollment: { id }, // já cria o vínculo via FK
     companyId,
     branchId,
-    type: 'terminal',
+    type: "terminal",
     attendedAt: new Date(),
   };
 

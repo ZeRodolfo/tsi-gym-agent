@@ -4,7 +4,7 @@ import { Buffer } from "buffer";
 window.Buffer = Buffer;
 
 export const login = async (ip, { login, password }) => {
-  console.log("Tentativa de acesso:", { ip, login, password });
+  console.log("Tentativa de acesso");
 
   return await axios
     .post(

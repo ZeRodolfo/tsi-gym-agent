@@ -38,8 +38,8 @@ export default function AccessControlConfig({ onSetup }) {
   const [isLoadingSave, setIsLoadingSave] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [isLoadingTest, setIsLoadingTest] = useState(false);
-  const [ip, setIp] = useState("192.168.18.116");
-  const [ipLocal, setIpLocal] = useState("192.168.0.1");
+  const [ip, setIp] = useState(""); // "192.168.18.116"
+  const [ipLocal, setIpLocal] = useState(""); //"192.168.0.1"
   const [port, setPort] = useState(3000);
   const [username, setUsername] = useState("tsitech");
   const [password, setPassword] = useState("admin");
@@ -62,9 +62,9 @@ export default function AccessControlConfig({ onSetup }) {
     const load = async () => {
       setIp(settings?.ip);
       setIpLocal(settings?.ipLocal);
-      setSideToEnter(settings?.catraSideToEnter);
+      setSideToEnter(settings?.catraSideToEnter || "0");
       setPort(settings?.port || 3000);
-      setUsername(settings?.username || "admin");
+      setUsername(settings?.username || "tsitech");
       setPassword(settings?.password || "admin");
       setTxtWelcome(settings?.customAuthMessage || "Seja bem-vindo");
       setTxtAccessDenied(settings?.customDenyMessage || "Acesso negado");
@@ -222,6 +222,7 @@ export default function AccessControlConfig({ onSetup }) {
                 setIp(e.target.value);
               }}
               className="flex-1"
+              placeholder="___.___.___.___"
             />
           </div>
 
@@ -311,6 +312,7 @@ export default function AccessControlConfig({ onSetup }) {
               setIpLocal(e.target.value);
             }}
             className="flex-1"
+            placeholder="___.___.___.___"
           />
         </div>
         <div className="w-[150px]">
@@ -319,7 +321,7 @@ export default function AccessControlConfig({ onSetup }) {
             onValueChange={function (val) {
               setSideToEnter(val);
             }}
-            defaultValue={sideToEnter}
+            value={sideToEnter}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione o sentido" />

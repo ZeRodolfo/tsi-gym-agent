@@ -92,7 +92,6 @@ export const SocketProvider = ({ children }) => {
               },
             });
         } catch (err) {
-          console.log("Offline");
           socket.emit("status", {
             timestamp: new Date().toISOString(),
             agent: {
@@ -114,8 +113,27 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on("insert-enrollment", (enrollment) => {
-      console.log("📥 Novo usuário para criar na catraca:", enrollment);
       createUserInCatraca(enrollment);
+    });
+
+    socket.on("insert-enrollments", async (enrollments) => {
+      console.log(
+        "📥 Sincronizando Novos usuários para criar na catraca:",
+        enrollments
+      );
+      for (const enrollment of enrollments) {
+        await createUserInCatraca(enrollment);
+        await new Promise((resolve) =>
+          setTimeout(() => {
+            resolve(true);
+          }, 1500)
+        );
+      }
+    });
+
+    socket.on("update-picture", (person) => {
+      console.log("📥 Atualizando imagem do usuário na catraca:", person);
+      updatePictureByPerson(person);
     });
 
     socket.on("enrollment:payment", (enrollment) => {
@@ -127,7 +145,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on("catraca_free", (response) => {
-      console.log("liberação da catraca", response);
+      console.log("Iniciando liberação da catraca", response);
       handleFreeCatracaConfirm(data, settings, response?.reason);
     });
 
@@ -141,10 +159,9 @@ export const SocketProvider = ({ children }) => {
 
   // 🔹 Cria usuário na catraca local
   const createUserInCatraca = async (enrollment) => {
-    console.log("Iniciando criação de usuário na catraca...", enrollment);
+    console.log("📥 Novo usuário para criar na catraca:", enrollment);
     try {
-      await api.post("/enrollments", enrollment);
-      // const catraca = await window.api?.getCatracaData?.();
+      await api.post("/enrollments", { ...enrollment, synced: false });
       const { data: catraca } = await api.get("/catracas/current");
       const { data: settings } = await api.get("/settings");
       const ip = settings?.ip;
@@ -166,10 +183,14 @@ export const SocketProvider = ({ children }) => {
         ip,
         response?.session,
         enrollment?.identifierCatraca,
-        enrollment?.picture?.replace("data:image/png;base64,", "")
+        enrollment?.picture
+          ?.replace("data:image/png;base64,", "")
+          ?.replace("data:image/jpeg;base64,", "")
       );
 
-      console.log("✅ Usuário criado com sucesso na catraca", { user, image });
+      console.log("✅ Usuário criado com sucesso na catraca");
+      await api.post("/enrollments", { ...enrollment, synced: true });
+
       // opcional: enviar confirmação ao servidor via socket
       // não reconheceu o socket, esta undefined
       socket.emit("enrollment-created", {
@@ -187,12 +208,48 @@ export const SocketProvider = ({ children }) => {
 
   // 🔹 Cria usuário na catraca local
   const paymentEnrollment = async (enrollment) => {
-    console.log("Iniciando pagamento da matricula...", enrollment);
+    // console.log("Iniciando pagamento da matricula...", enrollment);
     try {
       await api.post("/enrollments", enrollment);
     } catch (err) {
       console.error("❌ Erro ao criar usuário na catraca:", err);
       // toast.error("Não foi possível cadastrar usuário na catraca");
+    }
+  };
+
+  const updatePictureByPerson = async (person) => {
+    // console.log(
+    //   "Iniciando atualização da foto do usuário na catraca...",
+    //   person
+    // );
+    try {
+      const enrollment = await api.patch("/enrollments/update-picture", person);
+      if (!enrollment) {
+        console.log("Usuário não encontrado na catraca...");
+        return;
+      }
+
+      const { data: settings } = await api.get("/settings");
+      const ip = settings?.ip;
+      const username = settings?.username;
+      const password = settings?.password;
+
+      const { data: response } = await login(ip, { login: username, password });
+      if (!response?.session) throw new Error("Falha ao autenticar na catraca");
+      setSession(response?.session);
+
+      await addFace(
+        ip,
+        response?.session,
+        person?.identifierCatraca,
+        person?.picture
+          ?.replace("data:image/png;base64,", "")
+          ?.replace("data:image/jpeg;base64,", "")
+      );
+
+      console.log("✅ Foto do usuário atualizada com sucesso na catraca");
+    } catch (err) {
+      console.error("❌ Erro ao atualizar a foto do usuário na catraca:", err);
     }
   };
 

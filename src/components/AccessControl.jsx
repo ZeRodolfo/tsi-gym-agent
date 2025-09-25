@@ -27,21 +27,14 @@ export default function AccessControl() {
   const queryClient = useQueryClient();
 
   // Busca inicial do histórico
-  const {
-    data: historic,
-    isLoading,
-    isRefetching,
-  } = useQuery({
+  const { data: historic, isLoading } = useQuery({
     queryKey: ["historicLastAccess"],
     queryFn: fetchHistoricLastAccess,
     initialData: {}, // opcional, começa vazio
   });
 
-  console.log({ isLoading, isRefetching });
   // Atualizações em tempo real pelo socket
   useEffect(() => {
-    console.log({ socketLocal });
-
     const handleAccess = (newAccess) => {
       console.log("📥 Atualizando histórico via socket...", newAccess);
       if (newAccess) {

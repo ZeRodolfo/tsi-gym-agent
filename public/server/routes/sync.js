@@ -3,7 +3,6 @@ const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
 
-console.log("process.env.BASE_URL", process.env.BASE_URL);
 const api = axios.create({
   baseURL: process.env.BASE_URL,
 });
@@ -31,7 +30,6 @@ router.get("/", async (req, res) => {
         startDate,
         endDate,
         extendedAt,
-        identifierCatraca,
         code,
         student,
         companyId,
@@ -41,12 +39,12 @@ router.get("/", async (req, res) => {
       const payload = {
         id,
         code,
-        name: student?.name,
+        name: student?.person?.name,
         status,
         startDate,
         endDate,
         extendedAt,
-        identifierCatraca,
+        identifierCatraca: student?.person?.identifierCatraca,
         picture: student?.person?.picture,
         companyId,
         branchId,
@@ -62,7 +60,9 @@ router.get("/", async (req, res) => {
         addressState: student?.person?.address?.state,
       };
 
-      let enrollment = await repo.findOneBy({ identifierCatraca });
+      let enrollment = await repo.findOneBy({
+        identifierCatraca: student.person.identifierCatraca,
+      });
       if (!enrollment) {
         enrollment = repo.create(payload);
         await repo.save(enrollment);
@@ -81,6 +81,13 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const repoCatraca = AppDataSource.getRepository("Catraca");
+    const catracas = await repoCatraca.find();
+    if (!catracas?.length)
+      return res
+        .status(200)
+        .json({ message: "Não existe Catraca configurada." });
+
+    const catraca = catracas?.[0];
     const repo = AppDataSource.getRepository("Historic");
     // Busca os não sincronizados
     const unsynced = await repo.find({ where: { synced: false } });
@@ -92,13 +99,6 @@ router.post("/", async (req, res) => {
         .json({ message: "Não existe Histórico para ser enviado." });
     }
 
-    const catracas = await repoCatraca.find();
-    if (!catracas?.length)
-      return res
-        .status(200)
-        .json({ message: "Não existe Catraca configurada." });
-
-    const catraca = catracas?.[0];
     const response = await api.post(
       "/lessons-attendances/sync",
       unsynced?.map(({ synced, ...item }) => item),

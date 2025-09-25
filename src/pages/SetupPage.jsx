@@ -33,7 +33,7 @@ export default function SetupPage() {
     const checkToken = async () => {
       const { data: catraca } = await getCatraca();
       const { data: settings } = await getSettings();
-      console.log('SETUP', { catraca, settings });
+
       if (!settings?.id && !settings?.ip && catraca?.id)
         navigate("/parameters");
       else if (catraca?.id) navigate("/main");
@@ -52,7 +52,6 @@ export default function SetupPage() {
         machineName: "PC Name",
       });
 
-      console.log("data", data);
       if (data?.id) {
         navigate("/parameters");
       } else {

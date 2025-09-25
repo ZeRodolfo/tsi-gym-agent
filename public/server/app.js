@@ -9,8 +9,7 @@ const { Server } = require("socket.io");
 
 const { AppDataSource } = require("./ormconfig");
 const jobs = require("./jobs");
-const routers = require("./routes"); // Importa as rotas
-// const realtime = require("./realtime");
+const routers = require("./routes");
 
 function startServer() {
   AppDataSource.initialize()
@@ -32,21 +31,20 @@ function startServer() {
   app.use(express.json({ limit: "10mb" }));
   app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
   app.use(cors()); // Libera tudo (para dev)
-  // 👉 Deixa o `io` acessível nas rotas
-  app.set("io", io);
+  app.set("io", io); // 👉 Deixa o `io` acessível nas rotas
 
   // Eventos Socket.io
   io.on("connection", (socket) => {
-    console.log("Cliente conectado:", socket.id);
+    console.log("Servidor local conectado:", socket.id);
 
-    // Cliente pede status
-    socket.on("getStatus", () => {
-      socket.emit("catraca:status", { online: true });
-    });
+    // Cliente local pede status
+    // socket.on("getStatus", () => {
+    //   socket.emit("catraca:status", { online: true });
+    // });
 
     // Desconexão
     socket.on("disconnect", () => {
-      console.log("Cliente saiu:", socket.id);
+      console.log("Servidor local desconectado:", socket.id);
     });
   });
 
@@ -67,8 +65,8 @@ function startServer() {
   // });
 
   app.use("/api", routers); // Usa as rotas definidas
-  // app.use("/ws", realtime); // Usa as rotas definidas
 
+  // verificar se esta sendo usado essas rotas abaixo
   app.get(["/session_is_valid.fcgi", "/device_is_alive.fcgi"], (req, res) => {
     const { session } = req.body;
     console.log("Tentativa de verificação de sessão:", { session });
@@ -81,7 +79,6 @@ function startServer() {
   });
 
   app.post("/new_user_identified.fcgi", async (req, res) => {
-    console.log("AKI 2222", req.body);
     const {
       user_id: userIdStr,
       event: eventStr,
@@ -144,32 +141,6 @@ function startServer() {
   server.listen(4000, () => {
     console.log("Servidor de acesso iniciado na porta 4000");
   });
-
-  // rotas de teste com banco de dados
-
-  // app.post("/agent/status", async (req, res) => {
-  //   const { machineId, status } = req.body;
-  //   if (!machineId || !status) return res.status(400).send("Missing fields");
-
-  //   const repo = AppDataSource.getRepository("Enrollment");
-  //   let agent = await repo.findOneBy({ machineId });
-
-  //   if (!agent) {
-  //     agent = repo.create({ machineId, status });
-  //   } else {
-  //     agent.status = status;
-  //   }
-
-  //   await repo.save(agent);
-  //   res.send(agent);
-  // });
-
-  // // Buscar todos
-  // app.get("/agent/status", async (_, res) => {
-  //   const repo = AppDataSource.getRepository("Enrollment");
-  //   const all = await repo.find();
-  //   res.send(all);
-  // });
 }
 
 module.exports = { startServer };

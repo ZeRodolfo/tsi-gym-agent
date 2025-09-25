@@ -1,12 +1,12 @@
 const express = require("express");
-const axios = require("axios");
+// const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
-const { Settings } = require("../entities/Settings");
+// const { Settings } = require("../entities/Settings");
 
-const api = axios.create({
-  baseURL: process.env.BASE_URL || "http://localhost:4003",
-});
+// const api = axios.create({
+//   baseURL: process.env.BASE_URL || "http://localhost:4003",
+// });
 
 router.get("/", async (req, res) => {
   try {

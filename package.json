@@ -13,7 +13,7 @@
   "scripts": {
     "main": "public/electron.js",
     "server": "nodemon public/server",
-    "electron-dev": "concurrently \"cross-env BROWSER=none yarn start\" \"wait-on http://localhost:3001 && electron .\"",
+    "electron-dev": "concurrently \"cross-env NODE_ENV=production BROWSER=none yarn start\" \"wait-on http://localhost:3001 && electron .\"",
     "start": "react-scripts start",
     "electron": "electron .",
     "build:react": "react-scripts build",

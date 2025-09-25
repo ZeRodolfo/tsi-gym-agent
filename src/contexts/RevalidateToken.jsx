@@ -44,6 +44,9 @@ export const RevalidateTokenProvider = ({ children }) => {
         }
 
         if (canSync) {
+          const isMainPage = window.location.href?.includes("/main");
+          if (!isMainPage) navigate("/main");
+
           await fetchSync();
           await sendSyncHistoricAccess();
 

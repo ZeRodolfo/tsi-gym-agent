@@ -7,7 +7,6 @@ let DEVICE_IP, DEVICE_PASSWORD, WEBHOOK_URL;
 
 // helper para fazer GET autenticado
 async function fcgi(path, payload = {}, sessionId) {
-  console.log({ DEVICE_IP, DEVICE_PASSWORD, WEBHOOK_URL });
   const url = `http://${DEVICE_IP}/${path}?session=${sessionId}`;
   const resp = await axios.post(url, payload, {
     timeout: 5000,
