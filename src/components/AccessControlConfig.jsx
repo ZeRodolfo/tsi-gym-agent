@@ -11,20 +11,48 @@ import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { Label } from "components/ui/Label";
 import { Title } from "components/ui/Title";
-import { login, logout } from "services/controlId/idBlockNext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "components/ui/Select";
+import {
+  login,
+  logout,
+  customizarMensagemEventos,
+} from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import { useRevalidateToken } from "contexts/RevalidateToken";
+import { api } from "services/api";
+import { FreeCatracaModal } from "components/FreeCatracaModal";
+
+const CATRACA_MODELS = {
+  idblock_next: "ID Block Next",
+};
 
 export default function AccessControlConfig({ onSetup }) {
-  const [ip, setIp] = useState("192.168.0.130");
+  const [isLoadingSave, setIsLoadingSave] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isLoadingTest, setIsLoadingTest] = useState(false);
+  const [ip, setIp] = useState(""); // "192.168.18.116"
+  const [ipLocal, setIpLocal] = useState(""); //"192.168.0.1"
   const [port, setPort] = useState(3000);
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("tsitech");
   const [password, setPassword] = useState("admin");
   const [txtWelcome, setTxtWelcome] = useState("Seja bem-vindo");
   const [txtAccessDenied, setTxtAccessDenied] = useState("Acesso negado");
   const [txtUserNotIdentifier, setTxtUserNotIdentifier] = useState(
     "Usuário não reconhecido"
   );
+  const [sideToEnter, setSideToEnter] = useState("0");
+  const [openCatracaModal, setOpenCatracaModal] = useState(false);
+
+  const navigate = useNavigate();
+  const { data: catraca, settings, setSettings } = useRevalidateToken();
 
   //   const [timeout, setTimeout] = useState(5);
   //   const [primeSF, setPrimeSF] = useState(false);
@@ -32,38 +60,73 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      const data = await window.api?.getCatracaData?.();
-      setIp(data?.ip || "192.168.0.130");
-      setPort(data?.port || 3000);
-      setUsername(data?.login || "admin");
-      setPassword(data?.password || "admin");
+      setIp(settings?.ip);
+      setIpLocal(settings?.ipLocal);
+      setSideToEnter(settings?.catraSideToEnter || "0");
+      setPort(settings?.port || 3000);
+      setUsername(settings?.username || "tsitech");
+      setPassword(settings?.password || "admin");
+      setTxtWelcome(settings?.customAuthMessage || "Seja bem-vindo");
+      setTxtAccessDenied(settings?.customDenyMessage || "Acesso negado");
+      setTxtUserNotIdentifier(
+        settings?.customNotIdentifiedMessage || "Usuário não reconhecido"
+      );
     };
 
     load();
-  }, []);
+  }, [settings]);
 
   const handleTestComunication = async () => {
+    setIsLoadingTest(true);
     login(ip, { login: username, password })
       .then(async ({ data }) => {
         toast.success("Comunicação testada com sucesso com a catraca!");
-        await logout(ip, data.session);
+        // await logout(ip, data.session);
       })
       .catch((error) => {
         console.error("Erro ao acessar o servidor:", error);
         toast.error(
           "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
         );
+      })
+      .finally(() => {
+        setIsLoadingTest(false);
       });
   };
 
   const handleSetup = async () => {
+    setIsLoadingSettings(true);
     console.log("Iniciando configuração da Catraca");
+    const data = await login(ip, { login: username, password });
+    const { session } = data?.data || {};
+
+    if (!session) {
+      toast.error(
+        "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
+      );
+      setIsLoadingSettings(false);
+      return;
+    }
+
+    // pegar o IP da maquina onde esta o agente
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: "http://localhost:4000/api",
+      WEBHOOK_URL: `http://${ipLocal}:4000/api`,
+      session,
+      catra_side_to_enter: sideToEnter,
     })
-      .then(async ({ data }) => {
+      .then(async () => {
+        await customizarMensagemEventos(ip, session, {
+          custom_auth_message: txtWelcome,
+          custom_deny_message: txtAccessDenied,
+          custom_not_identified_message: txtUserNotIdentifier,
+          custom_mask_message: "Por favor, use máscara",
+          enable_custom_auth_message: "1",
+          enable_custom_deny_message: "1",
+          enable_custom_not_identified_message: "1",
+          enable_custom_mask_message: "1",
+        });
         toast.success("Catraca configurada com sucesso!");
       })
       .catch((error) => {
@@ -71,32 +134,70 @@ export default function AccessControlConfig({ onSetup }) {
         toast.error(
           "Não foi possível configurar a catraca. Por favor, verifique os dados."
         );
+      })
+      .finally(() => {
+        setIsLoadingSettings(false);
       });
   };
 
   const handleSaveTab = async () => {
+    setIsLoadingSave(true);
     console.log("Salvando dados da Catraca");
-    const data = {
-      ip,
-      port,
-      login: username,
-      password,
-      txtWelcome,
-      txtAccessDenied,
-      txtUserNotIdentifier,
-    };
 
     try {
-      window.api?.saveCatracaData?.(data);
+      const payload = {
+        ip,
+        port,
+        username,
+        password,
+        customAuthMessage: txtWelcome,
+        customDenyMessage: txtAccessDenied,
+        customNotIdentifiedMessage: txtUserNotIdentifier,
+        customMaskMessage: "Por favor, use máscara",
+        enableCustomAuthMessage: "1",
+        enableCustomDenyMessage: "1",
+        enableCustomNotIdentifiedMessage: "1",
+        enableCustomMaskMessage: "1",
+        ipLocal,
+        catraSideToEnter: sideToEnter,
+      };
+
+      const { data: settingsData } = await api.post("/settings", payload);
+      setSettings(settingsData);
+
+      const response = await login(ip, { login: username, password });
+      const { session } = response?.data || {};
+
+      if (!session) {
+        toast.error(
+          "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
+        );
+        setIsLoadingSave(false);
+        return;
+      }
+      await customizarMensagemEventos(ip, session, {
+        custom_auth_message: txtWelcome,
+        custom_deny_message: txtAccessDenied,
+        custom_not_identified_message: txtUserNotIdentifier,
+        custom_mask_message: "Por favor, use máscara",
+        enable_custom_auth_message: "1",
+        enable_custom_deny_message: "1",
+        enable_custom_not_identified_message: "1",
+        enable_custom_mask_message: "1",
+      });
       toast.success("Dados da Catraca salvos com sucesso!");
       onSetup?.("/main");
     } catch (error) {
       console.error("Erro ao salvar catraca:", error);
       toast.error(
-        "Não foi possível salvar os dados da catraca. Por favor, tente novamente."
+        "Não foi possível salvar os dados da catraca. Não foi possível acessar a catraca, verifique os parâmetros informados."
       );
+    } finally {
+      setIsLoadingSave(false);
     }
   };
+
+  const isLoading = isLoadingTest || isLoadingSave || isLoadingSettings;
 
   return (
     <>
@@ -104,14 +205,16 @@ export default function AccessControlConfig({ onSetup }) {
         <Title>Configurações da Catraca</Title> -
         <Label>
           <b>MODELO:</b>
-          <span className="text-warning ml-2">ID Block Next</span>
+          <span className="text-warning ml-2">
+            {CATRACA_MODELS?.[catraca?.model?.type] || "Não definido"}
+          </span>
         </Label>
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid grid-cols-[1fr_130px_130px] items-center gap-3">
           <div>
-            <Label>Endereço IP</Label>
+            <Label>Endereço IP da Catraca</Label>
 
             <Input
               value={ip}
@@ -119,6 +222,7 @@ export default function AccessControlConfig({ onSetup }) {
                 setIp(e.target.value);
               }}
               className="flex-1"
+              placeholder="___.___.___.___"
             />
           </div>
 
@@ -145,8 +249,12 @@ export default function AccessControlConfig({ onSetup }) {
           </div>
         </div>
         <div>
-          <Button onClick={handleTestComunication} variant="secondary">
-            Testar Comunicação
+          <Button
+            onClick={handleTestComunication}
+            variant="secondary"
+            disabled={isLoading}
+          >
+            {isLoadingTest ? "Testando..." : "Testar Comunicação"}
           </Button>
         </div>
       </div>
@@ -189,6 +297,40 @@ export default function AccessControlConfig({ onSetup }) {
               className="flex-1"
             />
           </div>
+        </div>
+      </div>
+
+      <div className="mt-5 mb-2">
+        <Title>Operacional</Title>
+      </div>
+      <div className="flex flex-wrap items-end gap-4">
+        <div>
+          <Label>Endereço IP da Máquina</Label>
+          <Input
+            value={ipLocal}
+            onChange={function (e) {
+              setIpLocal(e.target.value);
+            }}
+            className="flex-1"
+            placeholder="___.___.___.___"
+          />
+        </div>
+        <div className="w-[150px]">
+          <Label>Sentido do Giro</Label>
+          <Select
+            onValueChange={function (val) {
+              setSideToEnter(val);
+            }}
+            value={sideToEnter}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o sentido" />
+            </SelectTrigger>
+            <SelectContent className="w-[150px]">
+              <SelectItem value="1">Anti-horário</SelectItem>
+              <SelectItem value="0">Horário</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div>
@@ -235,11 +377,25 @@ export default function AccessControlConfig({ onSetup }) {
       </div>
 
       <div className="mt-4 flex justify-end space-x-2">
-        <Button onClick={handleSetup} variant="success">
-          Iniciar Configuração
+        <Button
+          onClick={() => setOpenCatracaModal(true)}
+          variant="secondary"
+          disabled={isLoading}
+        >
+          Liberar Catraca
         </Button>
-        <Button onClick={handleSaveTab}>Salvar</Button>
+        <Button onClick={handleSetup} variant="success" disabled={isLoading}>
+          {isLoadingSettings ? "Configurando..." : "Iniciar Configuração"}
+        </Button>
+        <Button onClick={handleSaveTab} disabled={isLoading}>
+          {isLoadingSave ? "Salvando..." : "Salvar"}
+        </Button>
       </div>
+
+      <FreeCatracaModal
+        isOpen={openCatracaModal}
+        onClose={() => setOpenCatracaModal(false)}
+      />
     </>
   );
 }

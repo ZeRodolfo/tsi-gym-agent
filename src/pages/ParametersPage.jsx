@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import AccessControlConfig from "components/AccessControlConfig";
-import { RevalidateTokenProvider } from "contexts/RevalidateToken";
 import { Card } from "components/ui/Card";
 
 const ParametersPage = () => {
@@ -16,7 +15,7 @@ const ParametersPage = () => {
         />
       </div>
       <Card className="p-3 mt-5 flex flex-col justify-center gap-2">
-        <div >
+        <div>
           <AccessControlConfig onSetup={() => navigate("/main")} />
         </div>
       </Card>

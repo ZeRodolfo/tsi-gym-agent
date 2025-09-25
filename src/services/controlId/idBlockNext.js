@@ -1,7 +1,10 @@
 import axios from "axios";
+import { Buffer } from "buffer";
+
+window.Buffer = Buffer;
 
 export const login = async (ip, { login, password }) => {
-  console.log("Tentativa de acesso:", { ip, login, password });
+  console.log("Tentativa de acesso");
 
   return await axios
     .post(
@@ -16,7 +19,8 @@ export const login = async (ip, { login, password }) => {
       }
     )
     .catch((error) => {
-      throw error;
+      console.log("Login Err", error);
+      // throw error;
     });
 };
 
@@ -34,7 +38,9 @@ export const logout = async (ip, session) => {
       }
     )
     .catch((error) => {
-      throw error;
+      console.log("Logout Err", error);
+
+      // throw error;
     });
 };
 
@@ -240,6 +246,235 @@ export const updateUsers = async (
     });
 };
 
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const len = binary.length;
+  const buf = new ArrayBuffer(len);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < len; i++) {
+    view[i] = binary.charCodeAt(i);
+  }
+  return buf;
+}
+
+export async function addFace(ip, session, userId, base64Image) {
+  const timestamp = Math.floor(Date.now() / 1000);
+  window.Buffer = window.Buffer || Buffer;
+  const buffer = base64ToArrayBuffer(base64Image);
+  return await axios.post(
+    `http://${ip}/user_set_image.fcgi?user_id=${userId}&timestamp=${timestamp}&match=0&session=${session}`,
+    buffer,
+    { headers: { "Content-Type": "application/octet-stream" } }
+  );
+}
+
+export const getGroups = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/load_objects.fcgi?session=${session}`,
+      {
+        object: "group_access_rules",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const getUserAccessRules = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/load_objects.fcgi?session=${session}`,
+      {
+        object: "user_access_rules",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const getAccessRules = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/load_objects.fcgi?session=${session}`,
+      {
+        object: "access_rules",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const createAccessRules = async (
+  ip,
+  session,
+  rules = [
+    {
+      name: "Happy Hour",
+      type: 1,
+      priority: 0,
+    },
+  ]
+) => {
+  return await axios
+    .post(
+      `http://${ip}/create_objects.fcgi?session=${session}`,
+      {
+        object: "access_rules",
+        values: rules,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const createUserGroups = async (
+  ip,
+  session,
+  rules = [
+    {
+      user_id: 1,
+      group_id: 1,
+    },
+  ]
+) => {
+  return await axios
+    .post(
+      `http://${ip}/create_objects.fcgi?session=${session}`,
+      {
+        object: "user_groups",
+        fields: ["user_id", "group_id"],
+        values: rules,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const getUserGroups = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/load_objects.fcgi?session=${session}`,
+      {
+        object: "user_groups",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const createGroupAccessRules = async (
+  ip,
+  session,
+  rules = [
+    {
+      group_id: 2,
+      access_rule_id: 3,
+    },
+  ]
+) => {
+  return await axios
+    .post(
+      `http://${ip}/create_objects.fcgi?session=${session}`,
+      {
+        object: "group_access_rules",
+        values: rules,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
+export const getConfiguration = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/get_configuration.fcgi?session=${session}`,
+      {
+        general: [
+          "online",
+          "beep_enabled",
+          // "relay1_enabled",
+          // "relay1_timeout",
+          // "relay1_auto_close",
+          // "relay2_enabled",
+          // "relay2_timeout",
+          // "relay2_auto_close",
+          "bell_enabled",
+          "bell_relay",
+          "local_identification",
+          "exception_mode",
+          "language",
+          "daylight_savings_time_start",
+          "daylight_savings_time_end",
+          "auto_reboot",
+        ],
+        // "mifare": ["byte_order"],
+        // "w_in0": ["byte_order"],
+        // "w_out0": ["data"],
+        alarm: ["siren_enabled"],
+        identifier: [
+          "verbose_logging",
+          "log_type",
+          "multi_factor_authentication",
+        ],
+        // "bio_id": ["similarity_threshold_1ton"],
+        online_client: [
+          "server_id",
+          "extract_template",
+          "max_request_attempts",
+        ],
+        // "bio_module": ["var_min"],
+        monitor: ["path", "hostname", "port", "request_timeout"],
+        push_server: [
+          "push_request_timeout",
+          "push_request_period",
+          "push_remote_address",
+        ],
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
 export const usersWithoutPictures = async (ip, session) => {
   return await axios
     .post(
@@ -297,6 +532,23 @@ export const usersWithPictures = async (ip, session) => {
     });
 };
 
+export const destroyUsers = async (ip, session) => {
+  return await axios
+    .post(
+      `http://${ip}/destroy_objects.fcgi?session=${session}`,
+      {
+        object: "users",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 20000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
 export const activatePush = async (ip, session) => {
   return await axios
     .post(
@@ -305,7 +557,7 @@ export const activatePush = async (ip, session) => {
         push_server: {
           push_request_timeout: "5000",
           push_request_period: "15",
-          push_remote_address: "http://localhost:4000",
+          push_remote_address: "http://192.168.18.27:4000",
         },
       },
       {

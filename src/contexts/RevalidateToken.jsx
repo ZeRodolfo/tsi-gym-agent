@@ -1,69 +1,154 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import CompanyHeader from "components/CompanyHeader";
-import { checkToken } from "services/settings";
+import { getCatraca, checkTokens } from "services/catracas";
+import { getSettings } from "services/settings";
 import Loading from "components/ui/Loading";
+import { toast } from "react-toastify";
+import { startOfDay } from "date-fns";
+import { fetchSync, sendSyncHistoricAccess } from "services/sync";
 
-// Criação do contexto
-const RevalidateTokenContext = createContext();
+const RevalidateTokenContext = createContext(null);
 
-// Provedor do contexto
 export const RevalidateTokenProvider = ({ children }) => {
   const [tokenData, setTokenData] = useState(null);
+  const [settingsData, setSettingsData] = useState(null);
   const navigate = useNavigate();
+  const [sync, setSync] = useState(false);
+
+  const handleSync = useCallback(
+    async (content = null) => {
+      setSync(true);
+
+      try {
+        let canSync = !!content?.id;
+        if (!content) {
+          const machineKey = await window.system.getMachineId();
+          const { data } = await checkTokens({
+            clientId: tokenData?.clientId,
+            clientSecret: tokenData?.clientSecret,
+            machineKey,
+            machineName: "PC Name",
+          });
+
+          canSync = !!data?.id;
+          setTokenData(data);
+        } else {
+          setTokenData((state) => ({ ...state, lastSync: new Date() }));
+        }
+
+        if (canSync) {
+          const isMainPage = window.location.href?.includes("/main");
+          if (!isMainPage) navigate("/main");
+
+          await fetchSync();
+          await sendSyncHistoricAccess();
+
+          toast.success("Sincronização realizada com sucesso!");
+        }
+      } catch (error) {
+        console.log("err", error);
+        toast.error("Erro ao sincronizar. Por favor, tente novamente.");
+      } finally {
+        setSync(false);
+      }
+    },
+    [tokenData]
+  );
+
+  // 🔹 Carrega e valida token salvo localmente
+  const loadToken = async () => {
+    const { data: catraca } = await getCatraca();
+    const { data: settings } = await getSettings();
+
+    if (!catraca?.id) {
+      navigate("/setup");
+      return null;
+    }
+    setTokenData(catraca);
+
+    if (!settings?.id && !settings?.ip) {
+      navigate("/parameters");
+      return null;
+    }
+
+    setSettingsData(settings);
+    const machineKey = await window.system.getMachineId();
+    const today = startOfDay(new Date());
+    const lastSync = startOfDay(catraca?.lastSync);
+
+    // 🔹 Só valida uma vez por dia no servidor
+    if (today?.getTime() > lastSync?.getTime()) {
+      try {
+        const { data: validated } = await checkTokens({
+          clientId: catraca.clientId,
+          clientSecret: catraca.clientSecret,
+          machineKey,
+          machineName: "PC Name",
+        });
+
+        if (!validated?.id) {
+          navigate("/setup");
+          return null;
+        }
+
+        handleSync(validated);
+        return catraca;
+      } catch (err) {
+        console.error("Erro ao validar token:", err);
+        navigate("/setup");
+        return null;
+      }
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      const tokenData = await window.api.getTokenData();
-      if (!tokenData?.token?.id) {
-        navigate("/setup");
-        return;
-      }
-
-      const lastCheck = new Date(tokenData.lastCheck);
-      const today = new Date();
-
-      if (today.toDateString() !== lastCheck.toDateString()) {
-        try {
-          const data = await checkToken(
-            tokenData.token.clientToken,
-            tokenData.token.clientSecretToken
-          );
-
-          if (!data?.id) {
-            navigate("/setup");
-          } else {
-            setTokenData(data);
-            window.api.saveTokenData({
-              token: data,
-              info: "dados da empresa no servidor",
-            });
-          }
-        } catch (error) {
-          window.api.saveTokenData(null);
-        }
-      } else {
-        setTokenData(tokenData);
-      }
-    };
-
-    load();
+    loadToken();
   }, []);
 
-  if (!tokenData?.token?.id) return <Loading />;
+  useEffect(() => {
+    let heartbeat;
+
+    if (tokenData) {
+      heartbeat = setInterval(async () => {
+        const today = startOfDay(new Date());
+        const lastSync = startOfDay(tokenData?.lastSync);
+
+        // 🔹 Só valida uma vez por dia no servidor
+        if (today?.getTime() > lastSync?.getTime()) handleSync();
+      }, 60_000 * 5);
+    }
+
+    return () => {
+      clearInterval(heartbeat);
+    };
+  }, [tokenData]);
+
+  if (!tokenData?.id) return <Loading />;
 
   return (
-    <RevalidateTokenContext.Provider value={{ tokenData, setTokenData }}>
-      <div>
-        <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
-
-        {children}
-      </div>
+    <RevalidateTokenContext.Provider
+      value={{
+        data: tokenData,
+        settings: settingsData,
+        setTokenData,
+        setSettings: setSettingsData,
+        syncing: sync,
+        handleSync,
+      }}
+    >
+      <CompanyHeader {...tokenData} onChangeToken={setTokenData} />
+      {children}
     </RevalidateTokenContext.Provider>
   );
 };
 
-// Hook para usar o contexto
 export const useRevalidateToken = () => {
   const context = useContext(RevalidateTokenContext);
   if (!context) {

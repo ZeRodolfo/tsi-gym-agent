@@ -1,28 +1,11 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "components/ui/Card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "components/ui/Tabs";
 import AccessControl from "components/AccessControl";
 import HistoricAccess from "components/HistoricAccess";
 import AccessControlConfig from "components/AccessControlConfig";
-import { useNavigate } from "react-router-dom";
-import { useRevalidateToken } from "contexts/RevalidateToken";
 
 const MainPage = () => {
-  const navigate = useNavigate();
-  const { tokenData } = useRevalidateToken();
-
-  useEffect(() => {
-    const load = async () => {
-      const catracaData = await window.api.getCatracaData();
-      if (tokenData?.token?.id && !catracaData?.ip) {
-        navigate("/parameters");
-        return;
-      }
-    };
-
-    load();
-  }, [tokenData]);
-
   return (
     <>
       <div className="px-3 grid grid-cols-[180px_1fr] gap-2 justify-center items-center w-full">
