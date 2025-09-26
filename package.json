@@ -46,10 +46,7 @@
       "build/**/*",
       "public/icons/*",
       "public/assets/icons/*",
-      "electron/preload.js",
-      "dist/",
-      "node_modules/",
-      "package.json"
+      "electron/preload.js"
     ],
     "win": {
       "target": "nsis",
