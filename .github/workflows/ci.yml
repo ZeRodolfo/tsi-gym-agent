@@ -26,12 +26,26 @@ jobs:
       - name: Build React + Server
         run: npm run build:all
 
+      - name: Install Wine for Windows build
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            wine-stable \
+            wine32 \
+            wine64 \
+            mono-devel \
+            icnsutils \
+            graphicsmagick \
+            xz-utils
+            
       # Agora roda o electron-builder usando a action oficial
       - name: Build Electron app (Linux + Windows)
         uses: samuelmeuli/action-electron-builder@v1
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
+          args: --win --x64 -c.extraMetadata.main=build/electron.js --publish never
+          # args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
