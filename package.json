@@ -20,7 +20,7 @@
     "build:electron": "tsc -p electron",
     "build:all": "npm run build:react && npm run build:server",
 
-    "dist": "npm run build:all && electron-builder",
+    "dist": "npm run build:all && electron-builder --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never",
 
     "electron-dev": "concurrently \"npm run start:react\" \"npm run start:electron\"",
     "start:react": "cross-env NODE_ENV=development BROWSER=none react-scripts start",
@@ -54,7 +54,10 @@
     },
     "linux": {
       "icon": "public/icons",
-      "category": "Settings"
+      "category": "Settings",
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "devDependencies": {
