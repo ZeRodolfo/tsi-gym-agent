@@ -65,7 +65,10 @@ router.post("/validate-tokens", async (req, res) => {
     });
   } catch (err) {
     console.log("error", err);
-    return res.status(400).json({ message: err?.response?.data?.message });
+    return res.status(400).json({
+      message: err?.response?.data?.message,
+      host: process.env.BASE_URL,
+    });
   }
 });
 

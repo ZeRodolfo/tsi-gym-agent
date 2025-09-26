@@ -15,7 +15,7 @@
     "server:local": "nodemon public/server",
 
     "build:react": "react-scripts build",
-    "build:server": "mkdir -p build/server && cp -r public/server/* build/server/",
+    "build:server": "mkdir -p build/server && cp -r public/server/* build/server/ && cp -r .env build/.env",
 
     "build:electron": "tsc -p electron",
     "build:all": "npm run build:react && npm run build:server",
