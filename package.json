@@ -33,7 +33,7 @@
       "build/**/*"
     ],
     "directories": {
-      "buildResources": "public"
+      "buildResources": "build"
     },
     "asar": false,
     "win": {
