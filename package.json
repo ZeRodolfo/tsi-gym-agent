@@ -27,21 +27,26 @@
     "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
   },
   "build": {
-    "appId": "br.com.tsitech.gym",
-    "productName": "TSI Gym Agent",
-    "files": [
-      "build/**/*"
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "resources/**"
     ],
+    "main": "build/electron.js",
     "directories": {
-      "buildResources": "build"
+      "buildResources": "public"
     },
-    "asar": false,
+    "files": [
+      "build/**/*",
+      "public/icons/*",
+      "public/assets/icons/*"
+    ],
     "win": {
       "target": "nsis",
-      "icon": "icons"
+      "icon": "public/icons/icon.ico"
     },
     "linux": {
-      "icon": "assets/icons",
+      "icon": "public/icons",
       "category": "Settings"
     }
   },
