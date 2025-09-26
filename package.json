@@ -1,7 +1,6 @@
 {
   "name": "tsi-gym-agent",
   "version": "1.0.0",
-  "main": "public/electron.js",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -26,13 +25,13 @@
     "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
     "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
   },
+  "main": "build/electron.js",
   "build": {
     "asar": true,
     "asarUnpack": [
       "**/*.node",
       "resources/**"
     ],
-    "main": "build/electron.js",
     "directories": {
       "buildResources": "public"
     },
