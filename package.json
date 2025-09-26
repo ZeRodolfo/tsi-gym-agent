@@ -12,26 +12,22 @@
   "description": "TSI Gym Agent is a desktop application for managing gym operations.",
   "scripts": {
     "start": "react-scripts start",
-    "server": "nodemon dist/server/index.js",
-    "server:local": "nodemon public/server",
-    
-    "build:react": "react-scripts build",
-    "build:server": "tsc -p server",
-    "build:electron": "tsc -p electron",
+    "server": "node build/server/index.js",
 
+    "build:react": "react-scripts build",
+    "build:server": "mkdir -p build/server && cp -r public/server/* build/server/",
+
+    "build:electron": "tsc -p electron",
     "build:all": "npm run build:react && npm run build:server && npm run build:electron",
 
     "dist": "npm run build:all && electron-builder",
 
-    "electron": "electron .",
-    "electron-dev": "concurrently \"cross-env NODE_ENV=production BROWSER=none npm start\" \"wait-on http://localhost:3001 && electron .\"",
-
-    "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=dist/electron.js",
-    "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=dist/electron.js",
-    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=dist/electron.js"
+    "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
   },
   "build": {
-    "appId": "br.com.tsigym.agent",
+    "appId": "br.com.tsitech.gym",
     "productName": "TSI Gym Agent",
     "files": [
       "build/**/*"
