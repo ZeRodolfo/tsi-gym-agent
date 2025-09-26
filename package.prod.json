@@ -1,7 +1,7 @@
 {
   "name": "tsi-gym-agent",
   "version": "1.0.0",
-  "main": "public/electron.js",
+  "main": "build/electron.js",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -11,30 +11,27 @@
   "license": "ISC",
   "description": "TSI Gym Agent is a desktop application for managing gym operations.",
   "scripts": {
+    "main": "public/electron.js",
+    "server": "nodemon public/server",
+    "electron-dev": "concurrently \"cross-env NODE_ENV=production BROWSER=none yarn start\" \"wait-on http://localhost:3001 && electron .\"",
     "start": "react-scripts start",
-    "server": "nodemon dist/server/index.js",
-    "server:local": "nodemon public/server",
-    
-    "build:react": "react-scripts build",
-    "build:server": "tsc -p server",
-    "build:electron": "tsc -p electron",
-
-    "build:all": "npm run build:react && npm run build:server && npm run build:electron",
-
-    "dist": "npm run build:all && electron-builder",
-
     "electron": "electron .",
-    "electron-dev": "concurrently \"cross-env NODE_ENV=production BROWSER=none npm start\" \"wait-on http://localhost:3001 && electron .\"",
-
-    "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=dist/electron.js",
-    "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=dist/electron.js",
-    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=dist/electron.js"
+    "build:app": "yarn build:react && electron-builder",
+    "build:react": "react-scripts build",
+    "electron-pack": "build --em.main=build/electron.js",
+    "preelectron-pack": "yarn build",
+    "electron:package:win": "yarn build:react && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:mac": "yarn build:react && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:linux": "yarn build:react && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
   },
   "build": {
     "appId": "br.com.tsigym.agent",
     "productName": "TSI Gym Agent",
     "files": [
-      "build/**/*"
+      "build/**/*",
+      "public/electron.js",
+      "public/server.js",
+      "package.json"
     ],
     "directories": {
       "buildResources": "public"
@@ -42,7 +39,7 @@
     "asar": false,
     "win": {
       "target": "nsis",
-      "icon": "icons"
+      "icon": "public/icon.ico"
     },
     "linux": {
       "icon": "assets/icons",
@@ -52,7 +49,7 @@
   "devDependencies": {
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
-    "electron": "^32.3.3",
+    "electron": "^36.0.0",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
