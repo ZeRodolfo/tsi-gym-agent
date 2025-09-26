@@ -46,7 +46,9 @@
       "build/**/*",
       "public/icons/*",
       "public/assets/icons/*",
-      "electron/preload.js"
+      "electron/preload.js",
+      "node_modules/**/*",
+      "package.json"
     ],
     "win": {
       "target": "nsis",
@@ -60,6 +62,16 @@
       ]
     },
     "extraResources": [
+      {
+        "from": "node_modules",
+        "to": "build/node_modules",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "node_modules",
+        "to": "app/node_modules",
+        "filter": ["**/*"]
+      },
       {
         "from": "node_modules/sqlite3/",
         "to": "node_modules/sqlite3"
