@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, nativeImage, Tray } = require("electron");
 const isDev = require("electron-is-dev");
+// const isDev = await import('electron-is-dev').then(mod => mod.default);
 const path = require("path");
 const fs = require("fs");
 const { machineIdSync } = require("node-machine-id");
@@ -30,6 +31,12 @@ function createWindow() {
       ? "http://localhost:3001"
       : `file://${path.join(__dirname, "../build/index.html")}`
   ); // ou win.loadFile('index.html') em produção
+
+  // if (process.env.NODE_ENV === "development") {
+  //   win.loadURL("http://localhost:3001"); // React dev server
+  // } else {
+  //   win.loadFile("build/index.html"); // React build
+  // }
 }
 
 app.whenReady().then(() => {

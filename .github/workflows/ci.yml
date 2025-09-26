@@ -27,3 +27,16 @@ jobs:
 
       - name: Package Electron app
         run: npm run dist
+
+      - name: Upload Electron package
+        uses: actions/upload-artifact@v3
+        with:
+          name: tsi-gym-agent
+          path: dist/*
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.sha }}
+          name: TSI Gym Agent v${{ github.run_number }}
+          files: dist/*
