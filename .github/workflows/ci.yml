@@ -9,8 +9,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+  
     steps:
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -38,7 +50,7 @@ jobs:
             icnsutils \
             graphicsmagick \
             xz-utils
-            
+
       # Agora roda o electron-builder usando a action oficial
       - name: Build Electron app (Linux + Windows)
         uses: samuelmeuli/action-electron-builder@v1
