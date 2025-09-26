@@ -18,7 +18,7 @@
     "build:server": "mkdir -p build/server && cp -r public/server/* build/server/",
 
     "build:electron": "tsc -p electron",
-    "build:all": "npm run build:react && npm run build:server && npm run build:electron",
+    "build:all": "npm run build:react && npm run build:server && electron-builder",
 
     "dist": "npm run build:all && electron-builder",
 
