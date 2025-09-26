@@ -30,6 +30,7 @@ jobs:
       - name: Build Electron app (Linux + Windows)
         uses: samuelmeuli/action-electron-builder@v1
         with:
+          github_token: ${{ secrets.GH_TOKEN }}
           args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
