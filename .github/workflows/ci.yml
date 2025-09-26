@@ -28,7 +28,7 @@ jobs:
 
       # Agora roda o electron-builder usando a action oficial
       - name: Build Electron app (Linux + Windows)
-        uses: electron-userland/electron-builder-action@v2
+        uses: samuelmeuli/action-electron-builder@v1
         with:
           args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
         env:
