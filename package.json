@@ -29,7 +29,7 @@
   "main": "build/electron.js",
   "build": {
     "publish": null,
-    "asar": true,
+    "asar": false,
     "asarUnpack": [
       "**/preload.js",
       "**/*.node"
