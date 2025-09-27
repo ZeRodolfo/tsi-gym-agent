@@ -1,6 +1,6 @@
 {
   "name": "tsi-gym-agent",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "TSI Gym Agent is a desktop application for managing gym operations.",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "react-scripts start",
     "server": "nodemon build/server/index.js",
     "server:local": "nodemon public/server",
@@ -38,12 +39,10 @@
       "buildResources": "public"
     },
     "files": [
+      "**/*",
+      "public/**/*",
       "build/**/*",
-      "public/icons/*",
-      "public/assets/icons/*",
-      "electron/preload.js",
-      "node_modules/**/*",
-      "package.json"
+      "electron/preload.js"
     ],
     "win": {
       "target": "nsis",
@@ -60,13 +59,6 @@
       {
         "from": "node_modules",
         "to": "build/node_modules",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "node_modules",
-        "to": "app/node_modules",
         "filter": [
           "**/*"
         ]
