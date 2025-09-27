@@ -39,7 +39,6 @@
       "buildResources": "public"
     },
     "files": [
-      "**/*",
       "public/**/*",
       "build/**/*",
       "electron/preload.js"
