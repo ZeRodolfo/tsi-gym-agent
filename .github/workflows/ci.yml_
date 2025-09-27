@@ -1,0 +1,142 @@
+name: Build Electron App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+  
+    steps:
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      # Instala dependências do projeto (necessário para buildar React/Server antes do Electron)
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React + Server
+        run: npm run build:all
+
+      - name: Install Wine for Windows build
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            wine-stable \
+            wine32 \
+            wine64 \
+            mono-devel \
+            icnsutils \
+            graphicsmagick \
+            xz-utils
+
+      # Agora roda o electron-builder usando a action oficial
+      - name: Build Electron app (Linux + Windows)
+        uses: samuelmeuli/action-electron-builder@v1
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          args: --win --x64 -c.extraMetadata.main=build/electron.js --publish never
+          # args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # Publica os artefatos gerados em dist/
+      - name: Upload Electron package
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsi-gym-agent
+          path: dist/*
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          artifacts: "dist/*"
+          token: ${{ secrets.GH_TOKEN }}
+
+
+# name: Build Electron App
+
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 20
+
+#       - name: Build with electron-builder
+#         uses: electron-userland/electron-builder-action@v2
+#         with:
+#           args: --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never
+
+#       # - name: Install dependencies for electron-builder
+#       #   run: |
+#       #     sudo dpkg --add-architecture i386
+#       #     sudo apt-get update
+#       #     sudo apt-get install --no-install-recommends -y \
+#       #       wine-stable \
+#       #       wine32 \
+#       #       wine64 \
+#       #       mono-devel \
+#       #       icnsutils \
+#       #       graphicsmagick \
+#       #       xz-utils
+            
+#       - name: Install dependencies
+#         run: npm install
+
+#       - name: Build all (React + Server + Electron)
+#         run: npm run build:all
+
+#       - name: Package Electron app
+#         run: npm run dist
+
+#       - name: Upload Electron package
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: tsi-gym-agent
+#           path: dist/*
+
+#       - name: Create GitHub Release
+#         uses: ncipollo/release-action@v1
+#         # with:
+#         #   tag: ${{ github.sha }}
+#         #   name: TSI Gym Agent v${{ github.run_number }}
+#         #   files: dist/*
+#         with:
+#           tag: ${{ github.ref_name }}
+#           artifacts: "dist/*"
+#           token: ${{ secrets.GH_TOKEN }}

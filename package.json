@@ -1,6 +1,6 @@
 {
   "name": "tsi-gym-agent",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -10,35 +10,36 @@
   "license": "ISC",
   "description": "TSI Gym Agent is a desktop application for managing gym operations.",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "react-scripts start",
-    "server": "node build/server/index.js",
-
-    "build:react": "react-scripts build",
-    "build:server": "mkdir -p build/server && cp -r public/server/* build/server/",
-
+    "server": "nodemon build/server/index.js",
+    "server:local": "nodemon public/server",
     "build:electron": "tsc -p electron",
-    "build:all": "npm run build:react && npm run build:server",
-
-    "dist": "npm run build:all && electron-builder",
-
+    "dist": "npm run build:all && electron-builder --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never",
+    "electron-dev": "concurrently \"npm run start:react\" \"npm run start:electron\"",
+    "start:react": "cross-env NODE_ENV=development BROWSER=none react-scripts start",
+    "start:electron": "wait-on http://localhost:3001 && electron public/electron.js --no-sandbox",
     "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
     "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
-    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
+    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js",
+    "build:all": "npm run build:react && npm run build:server",
+    "build:react": "react-scripts build",
+    "build:server": "mkdirp build/server && cpx \"server/**/*\" build/server && cpx .env build/"
   },
   "main": "build/electron.js",
   "build": {
-    "asar": true,
+    "publish": null,
+    "asar": false,
     "asarUnpack": [
-      "**/*.node",
-      "resources/**"
+      "**/preload.js",
+      "**/*.node"
     ],
     "directories": {
       "buildResources": "public"
     },
     "files": [
       "build/**/*",
-      "public/icons/*",
-      "public/assets/icons/*"
+      "electron/preload.js"
     ],
     "win": {
       "target": "nsis",
@@ -46,14 +47,28 @@
     },
     "linux": {
       "icon": "public/icons",
-      "category": "Settings"
-    }
+      "category": "Settings",
+      "target": [
+        "AppImage"
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "node_modules",
+        "to": "build/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
+    "cpx": "^1.5.0",
     "electron": "^32.3.3",
     "electron-builder": "^26.0.12",
+    "mkdirp": "^3.0.1",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
     "wait-on": "^8.0.3"
@@ -75,7 +90,7 @@
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
-    "electron-is-dev": "^3.0.1",
+    "electron-is-dev": "1.2.0",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
     "lucide-react": "^0.503.0",
