@@ -1,10 +1,9 @@
 const { app, BrowserWindow, ipcMain, nativeImage, Tray } = require("electron");
-const isDev = require("electron-is-dev");
-// const isDev = await import('electron-is-dev').then(mod => mod.default);
+// const isDev = require("electron-is-dev");
 const path = require("path");
 const fs = require("fs");
 const { machineIdSync } = require("node-machine-id");
-const { startServer } = require("./server/app");
+const { startServer } = require("../server/app");
 
 const tokenPath = path.join(app.getPath("userData"), "token.json");
 const catracaPath = path.join(app.getPath("userData"), "catraca.json");
@@ -26,17 +25,17 @@ function createWindow() {
     icon: __dirname + "/logo.png",
   });
 
-  win.loadURL(
-    isDev
-      ? "http://localhost:3001"
-      : `file://${path.join(__dirname, "../build/index.html")}`
-  ); // ou win.loadFile('index.html') em produção
+  // win.loadURL(
+  //   isDev
+  //     ? "http://localhost:3001"
+  //     : `file://${path.join(__dirname, "../build/index.html")}`
+  // ); // ou win.loadFile('index.html') em produção
 
-  // if (process.env.NODE_ENV === "development") {
-  //   win.loadURL("http://localhost:3001"); // React dev server
-  // } else {
-  //   win.loadFile("build/index.html"); // React build
-  // }
+  if (process.env.NODE_ENV === "development") {
+    win.loadURL("http://localhost:3001"); // React dev server
+  } else {
+    win.loadFile("build/index.html"); // React build
+  }
 }
 
 app.whenReady().then(() => {

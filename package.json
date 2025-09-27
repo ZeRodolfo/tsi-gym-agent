@@ -24,7 +24,7 @@
     "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js",
     "build:all": "npm run build:react && npm run build:server",
     "build:react": "react-scripts build",
-    "build:server": "mkdirp build/server && cpx \"public/server/**/*\" build/server && cpx .env build/.env"
+    "build:server": "mkdirp build/server && cpx \"server/**/*\" build/server && cpx .env build/"
   },
   "main": "build/electron.js",
   "build": {
@@ -32,14 +32,12 @@
     "asar": true,
     "asarUnpack": [
       "**/preload.js",
-      "**/*.node",
-      "resources/**"
+      "**/*.node"
     ],
     "directories": {
       "buildResources": "public"
     },
     "files": [
-      "public/**/*",
       "build/**/*",
       "electron/preload.js"
     ],
@@ -61,14 +59,6 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "node_modules/sqlite3/",
-        "to": "node_modules/sqlite3"
-      },
-      {
-        "from": "node_modules/better-sqlite3/",
-        "to": "node_modules/better-sqlite3"
       }
     ]
   },
