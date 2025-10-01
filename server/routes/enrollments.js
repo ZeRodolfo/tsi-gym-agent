@@ -2,6 +2,7 @@ const express = require("express");
 // const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
+const logger = require("../utils/logger"); // Importe o logger configurado
 
 // const api = axios.create({
 //   baseURL: process.env.BASE_URL || "http://localhost:4003",
@@ -14,7 +15,7 @@ router.get("/", async (req, res) => {
 
     return res.status(200).json(enrollments);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -28,7 +29,7 @@ router.get("/:identifieCatraca", async (req, res) => {
 
     return res.status(200).json(enrollment);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -87,7 +88,7 @@ router.post("/", async (req, res) => {
 
     return res.status(201).json(enrollment);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -100,7 +101,7 @@ router.patch("/update-picture", async (req, res) => {
     let enrollment = await repo.findOneBy({ identifierCatraca });
 
     if (!enrollment) {
-      console.log(
+      logger.info(
         "Matrícula não encontrado para o identificador: " + identifierCatraca
       );
       return null;
@@ -111,7 +112,7 @@ router.patch("/update-picture", async (req, res) => {
 
     return res.status(200).json(payload);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });

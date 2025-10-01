@@ -21,6 +21,7 @@ import { toast } from "react-toastify";
 import { useSocketLocal } from "contexts/SocketLocal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchHistoricLastAccess } from "services/historic";
+import logo from 'assets/logo.png'; // Caminho relativo a partir do seu componente
 
 export default function AccessControl() {
   const { socketLocal } = useSocketLocal();
@@ -120,7 +121,7 @@ export default function AccessControl() {
       <div className="w-full flex flex-wrap gap-3 mt-8">
         <div>
           <img
-            src={historic?.enrollment?.picture || "/logo.png"}
+            src={historic?.enrollment?.picture || logo}
             alt="Logo da TSI Gym"
             className="w-[120px] h-[120px] rounded-md border-2 border-primary"
           />

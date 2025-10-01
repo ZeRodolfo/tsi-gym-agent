@@ -1,20 +1,37 @@
-const { app, BrowserWindow, ipcMain, nativeImage, Tray } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeImage,
+  Tray,
+  Menu,
+} = require("electron");
 // const isDev = require("electron-is-dev");
 const path = require("path");
 const fs = require("fs");
 const { machineIdSync } = require("node-machine-id");
-const { startServer } = require("../server/app");
+const { startServer } = require(process.env.NODE_ENV === "development"
+  ? "../server/app"
+  : "./server/app");
 
-const tokenPath = path.join(app.getPath("userData"), "token.json");
-const catracaPath = path.join(app.getPath("userData"), "catraca.json");
+const tokenPath = path.join(app?.getPath("userData"), "token.json");
+const catracaPath = path.join(app?.getPath("userData"), "catraca.json");
 const historicUserAccessPath = path.join(
-  app.getPath("userData"),
+  app?.getPath("userData"),
   "historic_user_access.json"
 );
 
+let mainWindow;
+let tray;
+
 function createWindow() {
-  const appIcon = new Tray(__dirname + "/logo.png");
-  const win = new BrowserWindow({
+  if (mainWindow) {
+    mainWindow.show(); // já estava criada → só mostra
+    return;
+  }
+
+  // const appIcon = new Tray(__dirname + "/logo.png");
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -31,11 +48,21 @@ function createWindow() {
   //     : `file://${path.join(__dirname, "../build/index.html")}`
   // ); // ou win.loadFile('index.html') em produção
 
-  if (process.env.NODE_ENV === "development") {
-    win.loadURL("http://localhost:3001"); // React dev server
-  } else {
-    win.loadFile("build/index.html"); // React build
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   mainWindow.loadURL("http://localhost:3001"); // React dev server
+  // } else {
+  //   mainWindow.loadFile("build/index.html"); // React build
+  // }
+
+  mainWindow.loadURL(
+    app.isPackaged
+      ? `file://${path.join(__dirname, "build/index.html")}` // produção
+      : "http://localhost:3001" // dev
+  );
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -43,12 +70,33 @@ app.whenReady().then(() => {
   startServer(); // Inicia o mini servidor Node no mesmo app
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+app.on("ready", () => {
+  // cria tray
+  tray = new Tray(path.join(__dirname, "/logo.png"));
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Abrir",
+      click: () => createWindow(),
+    },
+    {
+      label: "Sair",
+      click: () => app.quit(),
+    },
+  ]);
+
+  tray.setToolTip("TSI Gym Agent");
+  tray.setContextMenu(contextMenu);
+  // 🔹 não abre janela automaticamente → só quando o usuário clicar
+});
+
+app.on("window-all-closed", (event) => {
+  // if (process.platform !== "darwin") app.quit();
+  // impede que o Electron finalize quando todas janelas fecharem
+  event.preventDefault();
 });
 
 app.on("activate", () => {
-  if (mainWindow === null) {
+  if (!mainWindow) {
     createWindow();
   }
 });

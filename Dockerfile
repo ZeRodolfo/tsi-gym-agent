@@ -1,87 +1,111 @@
 FROM electronuserland/builder:wine
 
-# Instala Wine, Mono e libs necessárias para cross-build do Windows
+# Dependências necessárias
 RUN dpkg --add-architecture i386 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-       wine64 \
-       wine32 \
-       wine32-preloader \
-       winbind \
-       mono-devel \
-       ca-certificates \
-       build-essential \
-       python3 \
-       git \
-       unzip \
-       wget \
-       p7zip-full \
-       icnsutils \
-       graphicsmagick \
-       xz-utils \
-       fuse \
+       wine64 wine32 wine32-preloader winbind \
+       mono-devel ca-certificates build-essential \
+       python3 git unzip wget p7zip-full icnsutils graphicsmagick xz-utils fuse \
     && rm -rf /var/lib/apt/lists/*
 
-# Garante que Wine está disponível
+RUN npm install --global electron-builder electron-rebuild cpx
+
+# Configurações Wine e Node
 ENV WINEARCH=win64
 ENV WINEDEBUG=-all
+ENV NODE_ENV=production
 
 WORKDIR /project
 
+# Copia arquivos de dependências primeiro para aproveitar cache
 COPY package*.json ./
+COPY package*.json ./server/
 
+# Instala dependências
 RUN npm ci
 
+# Copia e instala as dependências do diretório 'server'
+# O uso do && garante que o cd e o npm ci sejam executados na mesma camada
+# COPY server/package*.json ./server/
+RUN cd server && npm ci
+
+# Copia o restante do código
 COPY . .
 
-RUN npm install -g electron-builder
+# Build completo: React + server
+# RUN npm run build:all
 
-# Build do React
-RUN npm run build:react
-# RUN npm run build:app
+# Recompila módulos nativos para o Electron usando electron-builder
+# RUN electron-builder install-app-deps
 
-# Copia servidor local Express
-RUN mkdir -p build/server \
-    && cp -r public/server build/server
+# Recompila módulos nativos para o Electron
+# "postinstall": "electron-rebuild -f -w sqlite3",
+# Usando npx para garantir a versão correta do electron-rebuild
+# RUN npx electron-rebuild -f -w sqlite3
 
-# Comando final: gera instalador Windows
+# Comando default para gerar .exe
 CMD ["npm", "run", "electron:package:win"]
 
+# docker build -t tsi-gym-agent-builder .
+# docker run --rm -v ${PWD}/dist:/project/dist tsi-gym-agent-builder
 
-# # Baseado em Node LTS
-# FROM node:20-bullseye
 
-# # Instala Wine, Mono e dependências de compilação
+# FROM electronuserland/builder:wine
+
+# # Dependências necessárias
 # RUN dpkg --add-architecture i386 \
 #     && apt-get update \
 #     && apt-get install -y --no-install-recommends \
-#        wine64 wine32 \
-#        mono-devel \
-#        ca-certificates \
-#        build-essential \
-#        python3 \
-#        git \
-#        unzip \
-#        wget \
+#        wine64 wine32 wine32-preloader winbind \
+#        mono-devel ca-certificates build-essential \
+#        python3 git unzip wget p7zip-full icnsutils graphicsmagick xz-utils fuse \
 #     && rm -rf /var/lib/apt/lists/*
 
-# # Instala Yarn globalmente
-# RUN corepack enable && corepack prepare yarn@stable --activate
+# RUN npm install --global electron-builder cpx
 
-# # Cria diretório da aplicação
+# # Configurações Wine e Node
+# ENV WINEARCH=win64
+# ENV WINEDEBUG=-all
+# ENV NODE_ENV=production
+
 # WORKDIR /project
 
-# # Copia package.json e yarn.lock primeiro para cache
-# COPY package.json yarn.lock ./
+# # Copia arquivos de dependências primeiro para aproveitar cache
+# COPY package*.json ./
+# COPY package*.json ./server/
 
-# # Instala dependências (sem rebuild nativo ainda)
-# RUN yarn install --frozen-lockfile
+# # Instala dependências
+# RUN npm ci
 
-# # Copia o resto do código
+# # Copia e instala as dependências do diretório 'server'
+# # O uso do && garante que o cd e o npm ci sejam executados na mesma camada
+# # COPY server/package*.json ./server/
+# # RUN cd server && npm ci
+
+# # Copia o restante do código
 # COPY . .
 
-# # Instala electron-builder global (para garantir que está no PATH)
-# RUN yarn global add electron-builder
+# # Build completo: React + server
+# # RUN npm run build:all
 
-# # Comando padrão (pode ser sobrescrito no docker run)
-# CMD ["yarn", "electron:package:win"]
+# # Recompila módulos nativos para o Electron usando electron-builder
+# # RUN electron-builder install-app-deps
+
+# # Recompila módulos nativos para o Electron
+# # "postinstall": "electron-rebuild -f -w sqlite3",
+# # Usando npx para garantir a versão correta do electron-rebuild
+# # RUN npx electron-rebuild -f -w sqlite3
+
+# # Comando default para gerar .exe
+# CMD ["npm", "run", "electron:package:win"]
+
+# # docker build -t tsi-gym-agent-builder .
+# # docker run --rm -v ${PWD}/dist:/project/dist tsi-gym-agent-builder
+
+# # docker run --rm \
+# #   -v ${PWD}:/project \
+# #   -v ${PWD}/dist:/project/dist \
+# #   -v ${PWD}/node_modules:/project/node_modules \
+# #   -v ${PWD}/server/node_modules:/project/server/node_modules \
+# #   tsi-gym-agent-builder sh -c "npm ci && cd server && npm ci && cd .. && npm run build && electron-builder install-app-deps && npm run electron:package:win"

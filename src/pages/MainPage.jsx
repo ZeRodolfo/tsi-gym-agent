@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "components/ui/Tabs";
 import AccessControl from "components/AccessControl";
 import HistoricAccess from "components/HistoricAccess";
 import AccessControlConfig from "components/AccessControlConfig";
+import logo from 'assets/logo.png'; // Caminho relativo a partir do seu componente
 
 const MainPage = () => {
   return (
@@ -11,7 +12,7 @@ const MainPage = () => {
       <div className="px-3 grid grid-cols-[180px_1fr] gap-2 justify-center items-center w-full">
         <div>
           <img
-            src="/logo.png"
+            src={logo}
             alt="Logo da TSI Gym"
             className="w-[180px] h-[180px] rounded-full"
           />
