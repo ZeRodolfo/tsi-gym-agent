@@ -1,25 +1,54 @@
 require("reflect-metadata");
 require("dotenv").config();
 
+process.env.BASE_URL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:4003"
+    : "https://gym-api.tsitech.com.br";
+
 const express = require("express");
+// const fs = require("fs");
+// const path = require("path");
+// const morgan = require("morgan");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const http = require("http");
 const { Server } = require("socket.io");
+const logger = require("./utils/logger"); // Importe o logger configurado
 
 const { AppDataSource } = require("./ormconfig");
 const jobs = require("./jobs");
 const routers = require("./routes");
 
+// let logDirectory;
+
+// if (process.env.NODE_ENV === "development") {
+//   // No modo de desenvolvimento, use a pasta raiz do projeto.
+//   // path.resolve() é seguro e obtém um caminho absoluto.
+//   logDirectory = path.resolve(__dirname, "../../logs");
+// } else {
+//   // No modo de produção (após o build), use process.resourcesPath.
+//   logDirectory = path.join(process.resourcesPath, "logs");
+// }
+
+// Crie um stream de escrita para o arquivo de log
+// const accessLogStream = fs.createWriteStream(
+//   path.join(logDirectory, "access.log"),
+//   { flags: "a" }
+// );
+
 function startServer() {
+  logger.info(`HOST do servidor VPS: ${process.env.BASE_URL}`);
   AppDataSource.initialize()
     .then(() => {
-      console.log("Conectado ao SQLite com TypeORM!");
+      logger.info("Conectado ao SQLite com TypeORM!");
     })
-    .catch((err) => console.error("Erro ao conectar no banco de dados:", err));
+    .catch((err) => logger.error("Erro ao conectar no banco de dados:", err));
 
   jobs();
   const app = express();
+  // Configure o Morgan para usar o stream de arquivo
+  // app.use(morgan("combined", { stream: accessLogStream }));
   const server = http.createServer(app); // HTTP + Express
   const io = new Server(server, {
     cors: {
@@ -28,14 +57,14 @@ function startServer() {
     },
   });
 
-  app.use(express.json({ limit: "10mb" }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
-  app.use(cors()); // Libera tudo (para dev)
+  app.use(cors());
+  app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" })); // URL-encoded primeiro
+  app.use(express.json({ limit: "10mb" })); // JSON depois
   app.set("io", io); // 👉 Deixa o `io` acessível nas rotas
 
   // Eventos Socket.io
   io.on("connection", (socket) => {
-    console.log("Servidor local conectado:", socket.id);
+    logger.info("Socket local conectado:", socket.id);
 
     // Cliente local pede status
     // socket.on("getStatus", () => {
@@ -44,19 +73,23 @@ function startServer() {
 
     // Desconexão
     socket.on("disconnect", () => {
-      console.log("Servidor local desconectado:", socket.id);
+      logger.info("Socket local desconectado:", socket.id);
     });
   });
 
   // app.all('*', (req, res, next) => {
-  //   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  //   console.log('Headers:', req.headers);
-  //   console.log('Body:', req.body);
+  //   logger.info(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  //   logger.info('Headers:', req.headers);
+  //   logger.info('Body:', req.body);
   //   next();
   // });
 
   app.use((req, res, next) => {
-    console.log(Date.now(), req.method, req.originalUrl, req.body);
+    logger.info("Rota", {
+      method: req.method,
+      originalUrl: req.originalUrl,
+      body: req.body
+    });
     next();
   });
   // Endpoint de saúde: a catraca fará GET aqui para verificar disponibilidade
@@ -69,12 +102,12 @@ function startServer() {
   // verificar se esta sendo usado essas rotas abaixo
   app.get(["/session_is_valid.fcgi", "/device_is_alive.fcgi"], (req, res) => {
     const { session } = req.body;
-    console.log("Tentativa de verificação de sessão:", { session });
+    logger.info("Tentativa de verificação de sessão:", { session });
     return res.status(200).json({});
   });
   app.post(["/session_is_valid.fcgi", "/device_is_alive.fcgi"], (req, res) => {
     const { session } = req.body;
-    console.log("Tentativa de verificação de sessão:", { session });
+    logger.info("Tentativa de verificação de sessão:", { session });
     return res.status(200).json({});
   });
 
@@ -134,12 +167,12 @@ function startServer() {
 
   app.post("/session_is_valid.fcgi", (req, res) => {
     const { session } = req.body;
-    console.log("Tentativa de verificação de sessão:", { session });
+    logger.info("Tentativa de verificação de sessão:", { session });
     return res.status(200).json({});
   });
 
   server.listen(4000, () => {
-    console.log("Servidor de acesso iniciado na porta 4000");
+    logger.info("Servidor de acesso iniciado na porta 4000");
   });
 }
 

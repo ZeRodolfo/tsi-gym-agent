@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 const express = require("express");
 
-const { HOST_WSS } = require("../constants");
+const { HOST_WSS } = require("./constants");
 
 const socket = io(HOST_WSS, {
   auth: {

@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
+const logger = require("../utils/logger"); // Importe o logger configurado
 
 const api = axios.create({
   baseURL: process.env.BASE_URL,
@@ -22,6 +23,7 @@ router.get("/", async (req, res) => {
       },
     });
 
+    logger.info("TOTAL " + enrollments?.length || 0);
     const repo = AppDataSource.getRepository("Enrollment");
     for (const item of enrollments) {
       const {
@@ -35,6 +37,17 @@ router.get("/", async (req, res) => {
         companyId,
         branchId,
       } = item;
+      logger.info("Matrícula SYNC", {
+        id,
+        status,
+        startDate,
+        endDate,
+        extendedAt,
+        code,
+        companyId,
+        branchId,
+        identifierCatraca: student.person.identifierCatraca,
+      });
 
       const payload = {
         id,
@@ -49,7 +62,7 @@ router.get("/", async (req, res) => {
         companyId,
         branchId,
         studentId: student?.id,
-        studentName: student?.name,
+        studentName: student?.person?.name,
         birthdate: student?.person?.birthdate,
         addressZipcode: student?.person?.address?.zipcode,
         addressStreet: student?.person?.address?.street,
@@ -66,14 +79,20 @@ router.get("/", async (req, res) => {
       if (!enrollment) {
         enrollment = repo.create(payload);
         await repo.save(enrollment);
+        logger.info("Matrícula criada.");
       } else {
+        delete payload.id;
         await repo.save({ ...enrollment, ...payload });
+        logger.info("Matrícula atualizada.");
       }
     }
 
     return res.status(201).json({ message: "Sincronizado com sucesso!" });
   } catch (err) {
-    console.log("error", err);
+    logger.error(
+      "Não foi possível salvar as matrículas no banco de dados.",
+      err
+    );
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -93,7 +112,7 @@ router.post("/", async (req, res) => {
     const unsynced = await repo.find({ where: { synced: false } });
 
     if (unsynced.length === 0) {
-      console.log("Nenhum histórico pendente para sincronizar.");
+      logger.info("Nenhum histórico pendente para sincronizar.");
       return res
         .status(200)
         .json({ message: "Não existe Histórico para ser enviado." });
@@ -118,12 +137,15 @@ router.post("/", async (req, res) => {
         history.synced = true;
       }
       await repo.save(unsynced);
-      console.log("Históricos sincronizados com sucesso!");
+      logger.info("Históricos sincronizados com sucesso!");
     }
 
     return res.status(201).json({ message: "Histórico enviado com sucesso." });
   } catch (err) {
-    console.log("error", err);
+    logger.error(
+      "Histórico de acessos na catraca não foram sincronizados com o servidor VPS.",
+      err
+    );
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });

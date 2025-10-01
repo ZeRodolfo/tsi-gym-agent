@@ -2,6 +2,8 @@ const express = require("express");
 // const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
+const logger = require("../utils/logger"); // Importe o logger configurado
+
 // const { Settings } = require("../entities/Settings");
 
 // const api = axios.create({
@@ -15,7 +17,7 @@ router.get("/", async (req, res) => {
 
     return res.status(200).json(settings?.[0] || null);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -70,7 +72,7 @@ router.post("/", async (req, res) => {
 
     return res.status(201).json(settings);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
