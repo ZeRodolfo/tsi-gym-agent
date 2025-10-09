@@ -4,3 +4,4 @@ dist
 *.db
 agent.db
 agent.zip
+logs

@@ -36,6 +36,8 @@ router.get("/", async (req, res) => {
         student,
         companyId,
         branchId,
+        createdAt,
+        updatedAt,
       } = item;
       logger.info("Matrícula SYNC", {
         id,
@@ -47,6 +49,8 @@ router.get("/", async (req, res) => {
         companyId,
         branchId,
         identifierCatraca: student.person.identifierCatraca,
+        createdAt,
+        updatedAt,
       });
 
       const payload = {
@@ -71,11 +75,15 @@ router.get("/", async (req, res) => {
         addressComplement: student?.person?.address?.complement,
         addressCity: student?.person?.address?.city,
         addressState: student?.person?.address?.state,
+        createdAt,
+        updatedAt,
       };
 
       let enrollment = await repo.findOneBy({
+        id,
         identifierCatraca: student.person.identifierCatraca,
       });
+
       if (!enrollment) {
         enrollment = repo.create(payload);
         await repo.save(enrollment);

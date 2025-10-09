@@ -8,6 +8,11 @@ const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger");
 
 function stripTime(date) {
+  if (typeof date === "string") {
+    const [year, month, day] = date?.split("-");
+    return new Date(year, month, day);
+  }
+
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
@@ -130,17 +135,22 @@ router.post("/biometria", async (req, res) => {
 
 router.post("/new_user_identified.fcgi", async (req, res) => {
   logger.info("Validação do usuário na catraca");
-  try {
-    const repoHistoric = AppDataSource.getRepository("Historic");
-    const io = req.app.get("io");
-    const {
-      user_id: userIdStr,
-      event: eventStr,
-      user_name: userName,
-      portal_id: portalIdStr,
-      user_has_image,
-    } = req.body;
 
+  const io = req.app.get("io");
+  const {
+    user_id: userIdStr,
+    event: eventStr,
+    user_name: userName,
+    portal_id: portalIdStr,
+    user_has_image,
+  } = req.body;
+
+  const repoHistoric = AppDataSource.getRepository("Historic");
+  const repoCatraca = AppDataSource.getRepository("Catraca");
+  const catracas = await repoCatraca.find();
+  const catraca = catracas?.[0];
+
+  try {
     const userId = parseInt(userIdStr, 10);
     const event = parseInt(eventStr, 10);
     const portalId = parseInt(portalIdStr, 10);
@@ -148,7 +158,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     logger.info("Dados do usuário na catraca", { userId, event, portalId });
 
     if (userId === 0) {
-      const message = "Matrícula não localizada. Dirija-se a Recepção.";
+      const message = "Matrícula não localizada.";
       logger.info("Usuário não encontrado na catraca", {
         userId,
         event,
@@ -156,13 +166,19 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         user_has_image,
         message,
       });
-      const historic = repoHistoric.create({
-        ...payloadHistoric,
-        status: "not_found",
-        message,
-      });
-      await repoHistoric.save(historic);
-      io.emit("access", { ...historic });
+
+      if (catraca) {
+        const historic = repoHistoric.create({
+          companyId: catraca?.companyId,
+          branchId: catraca?.branchId,
+          type: "terminal",
+          attendedAt: new Date(),
+          status: "not_found",
+          message,
+        });
+        await repoHistoric.save(historic);
+        io.emit("access", { ...historic });
+      }
 
       return res.json({
         result: {
@@ -178,49 +194,44 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     } else {
       logger.info("Usuário passou na catraca", { userId, event, portalId });
     }
-    // Identificação falhou? event != 1
-    // if (event !== 1 || !userId) {
-    //   return res.json({ result: { event: 6, portal_id: portalId } });
-    // }
 
-    // Buscar usuário no seu sistema
-    const user = null; // await getUserById(userId);
-    // if (!user) {
-    //   return res.json({ result: {
-    //     event: 6,
-    //     message: 'Usuário não cadastrado',
-    //     user_id: userId,
-    //     portal_id: portalId,
-    //   } });
-    // }
-
-    // Verificar status financeiro
-    // if (!user?.paymentOk) {
-    //   return res.json({ result: {
-    //     event: 6,
-    //   user_id: userId,
-    //   "user_name": userName || user?.name,
-    //       "user_image": user_has_image === '1',
-    //   portal_id: portalId,
-    //   message: `Mensalidade em atraso!`
-    //   } });
-    // }
-
+    // Buscar usuário no seu sistema, verificar quando existir mais de uma matricula
+    // fazer uma verificação caso o aluno já possua uma matrícula e solicitar uma atualização na atual
+    // não deixar ter mais de uma matrícula ativa ao mesmo tempo, barrar no front principal
     const repoEnrollment = AppDataSource.getRepository("Enrollment");
-    const enrollment = await repoEnrollment.findOneBy({
-      identifierCatraca: userId,
+    const enrollments = await repoEnrollment.find({
+      where: {
+        identifierCatraca: userId,
+      },
+      order: {
+        // updatedAt: "DESC",
+        // endDate: "DESC",
+        // extendedAt: "DESC",
+        extendedAt: "DESC",
+        endDate: "DESC",
+        startDate: "DESC",
+      },
     });
 
-    logger.info("Matrícula", { id: enrollment?.id });
-
-    if (!enrollment) {
-      const message = "Matrícula não localizada. Dirija-se a Recepção.";
-      io.emit("access", { enrollment, status: "not_found", message });
+    if (!enrollments?.length) {
+      const message = "Matrícula não localizada.";
+      if (catraca) {
+        const historic = repoHistoric.create({
+          companyId: catraca?.companyId,
+          branchId: catraca?.branchId,
+          type: "terminal",
+          attendedAt: new Date(),
+          status: "not_found",
+          message,
+        });
+        await repoHistoric.save(historic);
+        io.emit("access", { ...historic });
+      }
 
       return res.json({
         result: {
           event: 6,
-          message: "Matrícula não localizada. Dirija-se a Recepção.",
+          message: "Matrícula não localizada.",
           user_name: "",
           user_image: user_has_image === "1",
           user_id: userId,
@@ -230,10 +241,74 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       });
     }
 
-    const { studentId, id, companyId, branchId } = enrollment || {};
+    // const filterActiveEnrollment = (enrollments) => {
+    //   console.log(enrollments);
+    //   if (enrollments.length === 1) return enrollments[0];
+
+    //   return enrollments.sort();
+    // };
+
+    const sortEnrollments = (a, b) => {
+      // Lógica de ordenação
+
+      // Crie um mapa de prioridade para os status
+      const statusPriority = {
+        pending: 1,
+        pending_registration_release: 2,
+        active: 3,
+        locked: 4,
+        expired: 5,
+        canceled: 6,
+      };
+
+      // 1. Priorize pelo status: matrículas ativas vêm primeiro
+      const priorityA = statusPriority[a.status] || Infinity;
+      const priorityB = statusPriority[b.status] || Infinity;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // 2. Priorize pela data de extensão mais recente (extendedAt)
+      const extendedAtA = a.extendedAt ? new Date(a.extendedAt).getTime() : 0;
+      const extendedAtB = b.extendedAt ? new Date(b.extendedAt).getTime() : 0;
+      if (extendedAtA !== extendedAtB) {
+        return extendedAtB - extendedAtA;
+      }
+
+      // 3. Priorize pela data de término mais recente (endDate)
+      const endDateA = a.endDate ? new Date(a.endDate).getTime() : 0;
+      const endDateB = b.endDate ? new Date(b.endDate).getTime() : 0;
+      if (endDateA !== endDateB) {
+        return endDateB - endDateA;
+      }
+
+      // 4. Priorize pela data de início mais recente (startDate)
+      const startDateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const startDateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+      if (startDateA !== startDateB) {
+        return startDateB - startDateA;
+      }
+
+      // Se todas as propriedades forem iguais, a ordem não muda
+      return 0;
+    };
+
+    const sortedEnrollments = enrollments.sort(sortEnrollments);
+    const enrollment = sortedEnrollments[0];
+
+    logger.info("Matrícula atual", {
+      id: enrollment?.id,
+      status: enrollment?.status,
+      startDate: enrollment?.startDate,
+      endDate: enrollment?.endDate,
+    });
+
+    const { studentId, id, companyId, branchId, identifierCatraca } =
+      enrollment || {};
     const payloadHistoric = {
       studentId,
-      enrollment: { id }, // já cria o vínculo via FK
+      enrollment: { id, identifierCatraca }, // já cria o vínculo via FK
       companyId,
       branchId,
       type: "terminal",
@@ -241,7 +316,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     };
 
     if (enrollment?.status === "pending") {
-      const message = "Matrícula pendente. Dirija-se a Recepção.";
+      const message = "Matrícula pendente.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "pending",
@@ -264,7 +339,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     }
 
     if (enrollment?.status === "pending_registration_release") {
-      const message = "Matrícula pendente de aprovação. Dirija-se a Recepção.";
+      const message = "Matrícula pendente de aprovação.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "pending_registration_release",
@@ -287,7 +362,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     }
 
     if (enrollment?.status === "locked") {
-      const message = "Matrícula trancada. Dirija-se a Recepção.";
+      const message = "Matrícula trancada.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "locked",
@@ -309,31 +384,8 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       });
     }
 
-    if (enrollment?.status === "expired") {
-      const message = "Matrícula expirada. Dirija-se a Recepção.";
-      const historic = repoHistoric.create({
-        ...payloadHistoric,
-        status: "expired",
-        message,
-      });
-      await repoHistoric.save(historic);
-      io.emit("access", { ...historic, enrollment });
-
-      return res.json({
-        result: {
-          event: 6,
-          message,
-          user_id: userId,
-          user_name: userName || user?.name,
-          user_image: user_has_image === "1",
-          portal_id: portalId,
-          actions: [],
-        },
-      });
-    }
-
     if (enrollment?.status === "canceled") {
-      const message = "Matrícula cancelada. Dirija-se a Recepção.";
+      const message = "Matrícula cancelada.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "canceled",
@@ -357,19 +409,43 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
     // checar matricula, status
     const extendedAt = enrollment.extendedAt
-      ? new Date(enrollment.extendedAt)
+      ? stripTime(enrollment.extendedAt)
       : null;
-    const endDate = new Date(enrollment.endDate);
+    // const endDate = new Date(enrollment.endDate);
     const today = stripTime(new Date());
 
-    const endDateOnly = stripTime(endDate);
-    const extendedAtOnly = extendedAt ? stripTime(extendedAt) : null;
+    const endDateOnly = stripTime(enrollment.endDate);
+    const extendedAtOnly = extendedAt ? extendedAt : null;
 
-    const isExpiredNormal = endDateOnly < today;
-    const isExpiredExtended = extendedAtOnly && extendedAtOnly < today; // expira só se passou do dia estendido
+    const isExpiredNormal = endDateOnly?.getTime() < today?.getTime();
+    const isExpiredExtended =
+      extendedAtOnly && extendedAtOnly?.getTime() < today?.getTime(); // expira só se passou do dia estendido
 
     if (isExpiredNormal || isExpiredExtended) {
-      const message = "Matrícula expirada. Dirija-se à recepção.";
+      const message = "Matrícula expirada.";
+      const historic = repoHistoric.create({
+        ...payloadHistoric,
+        status: "expired",
+        message,
+      });
+      await repoHistoric.save(historic);
+      io.emit("access", { ...historic, enrollment });
+
+      return res.json({
+        result: {
+          event: 6,
+          message,
+          user_id: userId,
+          user_name: userName || user?.name,
+          user_image: user_has_image === "1",
+          portal_id: portalId,
+          actions: [],
+        },
+      });
+    }
+
+    if (enrollment?.status === "expired") {
+      const message = "Matrícula expirada.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "expired",
@@ -404,6 +480,9 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     // Se atingiu aqui, libera o acesso
     // verificar o sentido da catraca atraves da configuração
 
+    const repoSettings = AppDataSource.getRepository("Settings");
+    const allSettings = await repoSettings.find();
+    const settings = allSettings?.[0];
     const parameters =
       settings?.catraSideToEnter === "0"
         ? "allow=clockwise"
@@ -421,14 +500,19 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     });
   } catch (err) {
     logger.error("Não foi possível liberar a catraca:", err);
-    const message = "Matrícula não localizada. Dirija-se a Recepção.";
-    const historic = repoHistoric.create({
-      ...payloadHistoric,
-      status: "not_found",
-      message,
-    });
-    await repoHistoric.save(historic);
-    io.emit("access", { ...historic });
+    const message = "Matrícula não localizada.";
+    if (catraca) {
+      const historic = repoHistoric.create({
+        companyId: catraca?.companyId,
+        branchId: catraca?.branchId,
+        type: "terminal",
+        attendedAt: new Date(),
+        status: "not_found",
+        message,
+      });
+      await repoHistoric.save(historic);
+      io.emit("access", { ...historic });
+    }
 
     return res.json({
       result: {

@@ -15,7 +15,11 @@ const Historic = new EntitySchema({
     },
     enrollmentId: {
       type: "varchar",
-      nullable: true,
+      nullable: true, // parte da FK composta
+    },
+    identifierCatraca: {
+      type: "int",
+      nullable: true, // parte da FK composta
     },
     companyId: {
       type: "varchar",
@@ -54,9 +58,16 @@ const Historic = new EntitySchema({
     enrollment: {
       type: "many-to-one",
       target: "Enrollment",
-      joinColumn: {
-        name: "enrollmentId", // FK na tabela historics
-      },
+      joinColumns: [
+        {
+          name: "enrollmentId",
+          referencedColumnName: "id",
+        },
+        {
+          name: "identifierCatraca",
+          referencedColumnName: "identifierCatraca",
+        },
+      ],
       inverseSide: "historics",
       onDelete: "CASCADE",
     },

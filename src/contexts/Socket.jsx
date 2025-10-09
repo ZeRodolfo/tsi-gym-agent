@@ -125,6 +125,13 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
+    socket.on("update-enrollments", async (enrollments) => {
+      console.log("📥 Atualizando as Matrículas no banco local:", enrollments);
+      for (const enrollment of enrollments) {
+        await api.put("/enrollments", enrollment);
+      }
+    });
+
     socket.on("update-picture", (person) => {
       console.log("📥 Atualizando imagem do usuário na catraca:", person);
       updatePictureByPerson(person);
@@ -148,6 +155,13 @@ export const SocketProvider = ({ children }) => {
       if (command.action === "open-gate") {
         // lógica para liberar a catraca
       }
+    });
+
+    socket.on("print", (printer) => {
+      window.printerAPI
+        .print("Olá impressora!")
+        .then((res) => console.log("Impresso com sucesso:", res))
+        .catch((err) => console.error("Erro ao imprimir:", err));
     });
   };
 
@@ -212,12 +226,13 @@ export const SocketProvider = ({ children }) => {
 
   const updatePictureByPerson = async (person) => {
     try {
-      const enrollment = await api.patch("/enrollments/update-picture", person);
-      if (!enrollment) {
+      const enrollments = await api.patch("/enrollments/update-picture", person);
+      if (!enrollments?.length) {
         console.log("Usuário não encontrado na catraca...");
         return;
       }
 
+      const enrollment = enrollments[0]
       const { data: settings } = await api.get("/settings");
       const ip = settings?.ip;
       const username = settings?.username;

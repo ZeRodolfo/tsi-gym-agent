@@ -5,20 +5,19 @@ const Enrollment = new EntitySchema({
   tableName: "enrollments",
   columns: {
     id: {
-      primary: true,
       type: "varchar",
-      generated: false,
+      primary: true, // chave principal real
     },
     identifierCatraca: {
       type: "int",
-      unique: true,
+      nullable: false, // apenas normal
     },
     code: { type: "varchar", nullable: true },
     name: { type: "varchar" },
     picture: { type: "varchar" },
-    startDate: { type: "date" },
-    endDate: { type: "date" },
-    extendedAt: { type: "date", nullable: true },
+    startDate: { type: "datetime" },
+    endDate: { type: "datetime" },
+    extendedAt: { type: "datetime", nullable: true },
     status: { type: "varchar" },
     companyId: { type: "varchar" },
     branchId: { type: "varchar" },
@@ -35,11 +34,9 @@ const Enrollment = new EntitySchema({
     synced: { type: "boolean", default: false },
     createdAt: {
       type: "datetime",
-      createDate: true,
     },
     updatedAt: {
       type: "datetime",
-      updateDate: true,
     },
   },
   relations: {
@@ -49,6 +46,13 @@ const Enrollment = new EntitySchema({
       inverseSide: "enrollment",
     },
   },
+  indices: [
+    {
+      name: "IDX_ENROLLMENT_ID_CATRACA",
+      columns: ["id", "identifierCatraca"],
+      unique: true, // combinação única
+    },
+  ],
 });
 
 module.exports = { Enrollment };

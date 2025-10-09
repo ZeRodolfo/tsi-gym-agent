@@ -1,6 +1,6 @@
 {
   "name": "tsi-gym-agent",
-  "version": "0.0.10",
+  "version": "0.0.9",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -12,16 +12,20 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "start": "react-scripts start",
-    "server": "cross-env NODE_ENV=development nodemon server",
+    "server": "nodemon build/server/index.js",
+    "server:local": "cross-env NODE_ENV=development nodemon server",
+    "build:electron": "tsc -p electron",
+    "dist": "npm run build:all && electron-builder --linux --win --x64 -c.extraMetadata.main=build/electron.js --publish never",
+    "electron": "electron .",
     "electron-dev": "concurrently \"cross-env NODE_ENV=development BROWSER=none npm start\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron public/electron.js\"",
-    "clean": "rimraf build dist",
-    "build:react": "cross-env NODE_ENV=production react-scripts build",
-    "build:server": "mkdir -p build/server && cross-env NODE_ENV=production cpx \"server/**/*\" build/server",
+    "start:react": "cross-env NODE_ENV=development BROWSER=none react-scripts start",
+    "start:electron": "wait-on http://localhost:3001 && electron public/electron.js",
+    "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js",
     "build:all": "npm run build:react && npm run build:server",
-    "electron:deps": "electron-builder install-app-deps",
-    "electron:package:win": "npm run build:all && npm run electron:deps && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
-    "electron:package:mac": "npm run build:all && npm run electron:deps && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
-    "electron:package:linux": "npm run build:all && npm run electron:deps && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
+    "build:react": "cross-env NODE_ENV=production react-scripts build",
+    "build:server": "mkdir build/server && cross-env NODE_ENV=production cpx \"server/**/*\" build/server && cpx .env build/ && cpx package.json build/"
   },
   "main": "build/electron.js",
   "build": {
@@ -35,12 +39,9 @@
     "files": [
       "build/**/*",
       "electron/preload.js",
+      "package-lock.json",
       "package.json"
     ],
-    "directories": {
-      "output": "dist",
-      "buildResources": "buildResources"
-    },
     "win": {
       "target": "nsis",
       "icon": "buildResources/icon.ico"
@@ -82,7 +83,6 @@
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
-    "edge-js": "^24.0.5",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
     "lucide-react": "^0.503.0",

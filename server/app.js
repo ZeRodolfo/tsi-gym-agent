@@ -85,10 +85,13 @@ function startServer() {
   // });
 
   app.use((req, res, next) => {
+    const body = req.body;
+    if (body?.picture) delete body.picture;
+
     logger.info("Rota", {
       method: req.method,
       originalUrl: req.originalUrl,
-      body: req.body
+      body,
     });
     next();
   });

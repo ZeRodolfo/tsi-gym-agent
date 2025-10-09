@@ -14,6 +14,8 @@ const { startServer } = require(process.env.NODE_ENV === "development"
   ? "../server/app"
   : "./server/app");
 
+// const printerTouchID = require("./printers/touchID");
+
 const tokenPath = path.join(app?.getPath("userData"), "token.json");
 const catracaPath = path.join(app?.getPath("userData"), "catraca.json");
 const historicUserAccessPath = path.join(
@@ -56,7 +58,7 @@ function createWindow() {
 
   mainWindow.loadURL(
     app.isPackaged
-      ? `file://${path.join(__dirname, "build/index.html")}` // produção
+      ? `file://${path.join(__dirname, "index.html")}` // produção
       : "http://localhost:3001" // dev
   );
 
@@ -67,7 +69,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  startServer(); // Inicia o mini servidor Node no mesmo app
+  startServer(); // Inicia o mini servidor Node no mesmo app, verificar se a porta ou o servidor já esta de pé
 });
 
 app.on("ready", () => {
@@ -158,4 +160,15 @@ ipcMain.handle("get-historic-user-access", () => {
 
 ipcMain.handle("get-machine-id", async () => {
   return machineIdSync(true);
+});
+
+// Exemplo: ouvindo chamada do Renderer
+ipcMain.handle("printer:print", async (event, text) => {
+  return new Promise((resolve, reject) => {
+    // printerTouchID.imprimir(text, (err, result) => {
+    //   if (err) reject(err);
+    //   else resolve(result);
+    // });
+    resolve()
+  });
 });
