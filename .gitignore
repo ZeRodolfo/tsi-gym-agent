@@ -2,3 +2,6 @@ node_modules
 build
 dist
 *.db
+agent.db
+agent.zip
+logs

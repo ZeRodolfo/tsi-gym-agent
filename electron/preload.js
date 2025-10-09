@@ -16,3 +16,7 @@ contextBridge.exposeInMainWorld("api", {
 contextBridge.exposeInMainWorld("system", {
   getMachineId: () => ipcRenderer.invoke("get-machine-id"),
 });
+
+contextBridge.exposeInMainWorld("printerAPI", {
+  print: (text) => ipcRenderer.invoke("printer:print", text),
+});

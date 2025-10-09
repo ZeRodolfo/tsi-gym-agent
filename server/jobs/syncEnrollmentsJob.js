@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { AppDataSource } = require("../ormconfig");
 const { Enrollment } = require("../entities/Enrollment");
+const logger = require("../utils/logger"); // Importe o logger configurado
 
 const api = axios.create({
   baseURL: process.env.BASE_URL,
@@ -19,7 +20,7 @@ module.exports = async function job() {
         synced: true,
       },
     });
-    console.log(`Matrículas encontradas localmente ${enrollments?.length}...`);
+    logger.info(`Matrículas encontradas localmente ${enrollments?.length}...`);
 
     const response = await api.post(
       "/enrollments/sync",
@@ -35,10 +36,10 @@ module.exports = async function job() {
     );
 
     if (response?.status === 200)
-      console.log(
+      logger.info(
         `Enviado para o agente sincronizar ${response.data.length} matriculas...`
       );
   } catch (error) {
-    console.error("Erro ao solicitar sincronização das matrículas:", error);
+    logger.error("Erro ao solicitar sincronização das matrículas:", error);
   }
 };

@@ -1,11 +1,12 @@
 const express = require("express");
-const axios = require("axios");
+// const axios = require("axios");
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
+const logger = require("../utils/logger"); // Importe o logger configurado
 
-const api = axios.create({
-  baseURL: process.env.BASE_URL || "http://localhost:4003",
-});
+// const api = axios.create({
+//   baseURL: process.env.BASE_URL || "http://localhost:4003",
+// });
 
 router.get("/", async (req, res) => {
   try {
@@ -18,7 +19,7 @@ router.get("/", async (req, res) => {
 
     return res.status(200).json(historics);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -34,7 +35,7 @@ router.get("/last-access", async (req, res) => {
 
     return res.status(200).json(historics?.[0] || null);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
@@ -43,6 +44,7 @@ router.post("/", async (req, res) => {
   const {
     studentId,
     enrollmentId,
+    identifierCatraca,
     companyId,
     branchId,
     reasonId,
@@ -54,7 +56,7 @@ router.post("/", async (req, res) => {
 
   const payload = {
     studentId,
-    enrollment: { id: enrollmentId }, // cria vínculo via FK
+    enrollment: { id: enrollmentId, identifierCatraca }, // cria vínculo via FK
     companyId,
     branchId,
     attendedAt: new Date(),
@@ -76,7 +78,7 @@ router.post("/", async (req, res) => {
     }
     return res.status(201).json(historic);
   } catch (err) {
-    console.log("error", err);
+    logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });

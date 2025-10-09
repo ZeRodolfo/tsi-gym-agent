@@ -8,22 +8,80 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
+      # 1. Checkout do repositório
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2. Cache Node + Electron
+      - name: Cache Node modules & Electron
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # 3. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
+      # 4. Instalar dependências
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm ci --prefer-offline --no-audit --progress=false
+          npm rebuild sqlite3 --build-from-source=false || true
+          npm rebuild better-sqlite3 --build-from-source=false || true
 
-      - name: Build all (React + Server + Electron)
+      # 5. Build React + Server antes do Electron
+      - name: Build React + Server
         run: npm run build:all
 
-      - name: Package Electron app
-        run: npm run dist
+      # 6. Build do Electron (cada runner compila para si mesmo)
+      - name: Build Electron app
+        uses: samuelmeuli/action-electron-builder@v1
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          args: >-
+            --x64
+            -c.extraMetadata.main=build/electron.js
+            --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
+
+      # 7. Upload dos artefatos separados por OS
+      - name: Upload Electron package
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsi-gym-agent-${{ matrix.os }}
+          path: dist/*
+
+  # Job opcional para juntar tudo em uma release única
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+        #   tag_name: v1.0.0
+          tag: ${{ github.ref_name }}
+          artifacts: "dist/**"
+          token: ${{ secrets.GH_TOKEN }}

@@ -60,8 +60,8 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      setIp(settings?.ip);
-      setIpLocal(settings?.ipLocal);
+      setIp(settings?.ip || "");
+      setIpLocal(settings?.ipLocal || "");
       setSideToEnter(settings?.catraSideToEnter || "0");
       setPort(settings?.port || 3000);
       setUsername(settings?.username || "tsitech");
@@ -206,7 +206,7 @@ export default function AccessControlConfig({ onSetup }) {
         <Label>
           <b>MODELO:</b>
           <span className="text-warning ml-2">
-            {CATRACA_MODELS?.[catraca?.model?.type] || "Não definido"}
+            {CATRACA_MODELS?.[catraca?.modelType] || "Não definido"}
           </span>
         </Label>
       </div>
@@ -219,7 +219,7 @@ export default function AccessControlConfig({ onSetup }) {
             <Input
               value={ip}
               onChange={function (e) {
-                setIp(e.target.value);
+                setIp(e.target.value || "");
               }}
               className="flex-1"
               placeholder="___.___.___.___"
@@ -309,7 +309,7 @@ export default function AccessControlConfig({ onSetup }) {
           <Input
             value={ipLocal}
             onChange={function (e) {
-              setIpLocal(e.target.value);
+              setIpLocal(e.target.value || "");
             }}
             className="flex-1"
             placeholder="___.___.___.___"

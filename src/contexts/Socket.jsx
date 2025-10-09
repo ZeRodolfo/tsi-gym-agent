@@ -28,15 +28,19 @@ const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [session, setSession] = useState(null);
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings,
     initialData: null, // opcional, começa vazio
   });
 
+  let heartbeat;
+
   useEffect(() => {
-    const load = async () => {
+    // envia heartbeat a cada 20s
+    heartbeat = setInterval(async () => {
+      if (!socket || !settings) return null;
+
       try {
         const ip = settings?.ip;
         const username = settings?.username;
@@ -45,15 +49,35 @@ export const SocketProvider = ({ children }) => {
           login: username,
           password,
         });
-        setSession(response?.session);
-      } catch (err) {
-        console.log("Não foi possível recuperar a seção");
-        setSession(null);
-      }
-    };
+        if (!response?.session)
+          throw new Error("Falha ao autenticar na catraca");
 
-    if (settings) load();
-  }, [settings]);
+        socket.emit("status", {
+          timestamp: new Date().toISOString(),
+          agent: {
+            online: true,
+          },
+          machine: {
+            online: true,
+          },
+        });
+      } catch (err) {
+        socket.emit("status", {
+          timestamp: new Date().toISOString(),
+          agent: {
+            online: true,
+          },
+          machine: {
+            online: false,
+          },
+        });
+      }
+    }, 20000);
+
+    return () => {
+      clearInterval(heartbeat);
+    };
+  }, [socket, settings]);
 
   // 🔹 Inicia socket de comunicação
   const initSocket = async (data) => {
@@ -71,38 +95,8 @@ export const SocketProvider = ({ children }) => {
       },
     });
 
-    let heartbeat;
-
     socket.on("connect", () => {
       console.log("🔗 Conectado ao servidor VPS:", socket.id);
-
-      // envia heartbeat a cada 30s
-      heartbeat = setInterval(async () => {
-        // const get ping local
-        try {
-          const config = await verifySession(settings?.ip, session);
-          if (config)
-            socket.emit("status", {
-              timestamp: new Date().toISOString(),
-              agent: {
-                online: true,
-              },
-              machine: {
-                online: true,
-              },
-            });
-        } catch (err) {
-          socket.emit("status", {
-            timestamp: new Date().toISOString(),
-            agent: {
-              online: true,
-            },
-            machine: {
-              online: false,
-            },
-          });
-        }
-      }, 20000);
     });
 
     setSocket(socket);
@@ -131,6 +125,13 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
+    socket.on("update-enrollments", async (enrollments) => {
+      console.log("📥 Atualizando as Matrículas no banco local:", enrollments);
+      for (const enrollment of enrollments) {
+        await api.put("/enrollments", enrollment);
+      }
+    });
+
     socket.on("update-picture", (person) => {
       console.log("📥 Atualizando imagem do usuário na catraca:", person);
       updatePictureByPerson(person);
@@ -155,6 +156,13 @@ export const SocketProvider = ({ children }) => {
         // lógica para liberar a catraca
       }
     });
+
+    socket.on("print", (printer) => {
+      window.printerAPI
+        .print("Olá impressora!")
+        .then((res) => console.log("Impresso com sucesso:", res))
+        .catch((err) => console.error("Erro ao imprimir:", err));
+    });
   };
 
   // 🔹 Cria usuário na catraca local
@@ -170,7 +178,6 @@ export const SocketProvider = ({ children }) => {
 
       const { data: response } = await login(ip, { login: username, password });
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
-      setSession(response?.session);
       const user = await createOrUpdateUsers(ip, response?.session, [
         {
           id: enrollment?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
@@ -193,13 +200,13 @@ export const SocketProvider = ({ children }) => {
 
       // opcional: enviar confirmação ao servidor via socket
       // não reconheceu o socket, esta undefined
-      socket.emit("enrollment-created", {
-        enrollmentId: enrollment.id,
-        catracaId: catraca.id,
-        user: Json.stringify(user),
-        picture: Json.stringify(image),
-        timestamp: new Date().toISOString(),
-      });
+      // socket.emit("enrollment-created", {
+      //   enrollmentId: enrollment.id,
+      //   catracaId: catraca.id,
+      //   user: Json.stringify(user),
+      //   picture: Json.stringify(image),
+      //   timestamp: new Date().toISOString(),
+      // });
     } catch (err) {
       console.error("❌ Erro ao criar usuário na catraca:", err);
       // toast.error("Não foi possível cadastrar usuário na catraca");
@@ -219,12 +226,13 @@ export const SocketProvider = ({ children }) => {
 
   const updatePictureByPerson = async (person) => {
     try {
-      const enrollment = await api.patch("/enrollments/update-picture", person);
-      if (!enrollment) {
+      const enrollments = await api.patch("/enrollments/update-picture", person);
+      if (!enrollments?.length) {
         console.log("Usuário não encontrado na catraca...");
         return;
       }
 
+      const enrollment = enrollments[0]
       const { data: settings } = await api.get("/settings");
       const ip = settings?.ip;
       const username = settings?.username;
@@ -232,13 +240,12 @@ export const SocketProvider = ({ children }) => {
 
       const { data: response } = await login(ip, { login: username, password });
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
-      setSession(response?.session);
 
       // verificar se será necessário criar um u
       await createOrUpdateUsers(ip, response?.session, [
         {
           id: person?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
-          name: enrollment?.name,
+          name: person?.name || enrollment?.name || enrollment?.studentName,
           registration: "",
         },
       ]);
