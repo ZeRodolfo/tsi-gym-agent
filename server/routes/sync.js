@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
     const catracas = await repoCatraca.find();
     const catraca = catracas?.[0] || {};
 
-    const { data: enrollments } = await api.get("/catracas/sync", {
+    const { data: response } = await api.get("/catracas/sync", {
       params: {
         clientId: catraca.clientId,
         clientSecret: catraca.clientSecret,
@@ -23,9 +23,21 @@ router.get("/", async (req, res) => {
       },
     });
 
-    logger.info("TOTAL " + enrollments?.length || 0);
-    const repo = AppDataSource.getRepository("Enrollment");
-    for (const item of enrollments) {
+    logger.info(
+      "Total de Matrículas a serem sincronizadas: " +
+        response?.enrollments?.length || 0
+    );
+    logger.info(
+      "Total de Professores a serem sincronizadas: " +
+        response?.teachers?.length || 0
+    );
+    logger.info(
+      "Total de Funcionários a serem sincronizadas: " +
+        response?.employees?.length || 0
+    );
+
+    const repoEnrollment = AppDataSource.getRepository("Enrollment");
+    for (const item of response?.enrollments) {
       const {
         id,
         status,
@@ -39,20 +51,6 @@ router.get("/", async (req, res) => {
         createdAt,
         updatedAt,
       } = item;
-      logger.info("Matrícula SYNC", {
-        id,
-        status,
-        startDate,
-        endDate,
-        extendedAt,
-        code,
-        companyId,
-        branchId,
-        identifierCatraca: student.person.identifierCatraca,
-        createdAt,
-        updatedAt,
-      });
-
       const payload = {
         id,
         code,
@@ -79,19 +77,79 @@ router.get("/", async (req, res) => {
         updatedAt,
       };
 
-      let enrollment = await repo.findOneBy({
+      let enrollment = await repoEnrollment.findOneBy({
         id,
         identifierCatraca: student.person.identifierCatraca,
       });
 
       if (!enrollment) {
-        enrollment = repo.create(payload);
-        await repo.save(enrollment);
+        enrollment = repoEnrollment.create(payload);
+        await repoEnrollment.save(enrollment);
         logger.info("Matrícula criada.");
       } else {
         delete payload.id;
-        await repo.save({ ...enrollment, ...payload });
+        await repoEnrollment.save({ ...enrollment, ...payload });
         logger.info("Matrícula atualizada.");
+      }
+    }
+
+    const repoTeacher = AppDataSource.getRepository("Teacher");
+    const repoWorkTime = AppDataSource.getRepository("WorkTime");
+    await repoWorkTime.deleteAll();
+    await repoTeacher.deleteAll();
+
+    for (const item of response?.teachers) {
+      const { workTimes, person, ...rest } = item;
+      const payload = { ...rest, ...person };
+
+      let teacher = await repoTeacher.findOneBy({
+        id: payload.id,
+        identifierCatraca: person?.identifierCatraca,
+      });
+
+      if (!teacher) {
+        teacher = repoTeacher.create(payload);
+        await repoTeacher.save(teacher);
+        logger.info("Professor criado.");
+      } else {
+        delete payload.id;
+        await repoTeacher.save({ ...teacher, ...payload });
+        logger.info("Professor atualizado.");
+      }
+
+      if (workTimes?.length > 0) {
+        const workTimesPayload = repoWorkTime.create(workTimes);
+        await repoWorkTime.save(workTimesPayload);
+        logger.info("Horários atualizados.");
+      }
+    }
+
+    const repoEmployee = AppDataSource.getRepository("Employee");
+    await repoEmployee.deleteAll();
+
+    for (const item of response?.employees) {
+      const { workTimes, person, ...rest } = item;
+      const payload = { ...rest, ...person };
+
+      let employee = await repoEmployee.findOneBy({
+        id: payload.id,
+        identifierCatraca: person?.identifierCatraca,
+      });
+
+      if (!employee) {
+        employee = repoEmployee.create(payload);
+        await repoEmployee.save(employee);
+        logger.info("Funcionário criado.");
+      } else {
+        delete payload.id;
+        await repoEmployee.save({ ...employee, ...payload });
+        logger.info("Funcionário atualizado.");
+      }
+
+      if (workTimes?.length > 0) {
+        const workTimesPayload = repoWorkTime.create(workTimes);
+        await repoWorkTime.save(workTimesPayload);
+        logger.info("Horários atualizados.");
       }
     }
 
@@ -150,10 +208,11 @@ router.post("/", async (req, res) => {
 
     return res.status(201).json({ message: "Histórico enviado com sucesso." });
   } catch (err) {
-    logger.error(
-      "Histórico de acessos na catraca não foram sincronizados com o servidor VPS.",
-      err
-    );
+    console.log(err)
+    // logger.error(
+    //   "Histórico de acessos na catraca não foram sincronizados com o servidor VPS.",
+    //   err
+    // );
     return res.status(400).json({ message: err?.response?.data?.message });
   }
 });

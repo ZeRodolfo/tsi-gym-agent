@@ -49,7 +49,7 @@ router.post("/", async (req, res) => {
     branchId,
     synced,
     createdAt,
-    updatedAt
+    updatedAt,
   } = req.body || {};
 
   const payload = {
@@ -156,6 +156,20 @@ router.patch("/update-picture", async (req, res) => {
       err
     );
     return res.status(400).json({ message: err?.response?.data?.message });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const repo = AppDataSource.getRepository("Enrollment");
+    await repo.delete({
+      id: req?.params?.id,
+    });
+
+    return res.status(200).json({ message: "Excluída com sucesso." });
+  } catch (err) {
+    logger.error("Não foi possível excluir a matrícula", err);
+    return res.status(400).json({ message: err?.message });
   }
 });
 

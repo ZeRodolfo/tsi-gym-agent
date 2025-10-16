@@ -23,6 +23,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchSettings } from "services/settings";
 import { handleFreeCatracaConfirm } from "utils/freeCatraca";
+import { toast } from "react-toastify";
 
 const SocketContext = createContext(null);
 
@@ -108,7 +109,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on("insert-enrollment", (enrollment) => {
-      createUserInCatraca(enrollment);
+      createEnrollmentInCatraca(enrollment);
     });
 
     socket.on("insert-enrollments", async (enrollments) => {
@@ -117,7 +118,7 @@ export const SocketProvider = ({ children }) => {
         enrollments
       );
       for (const enrollment of enrollments) {
-        await createUserInCatraca(enrollment);
+        await createEnrollmentInCatraca(enrollment);
         await new Promise((resolve) =>
           setTimeout(() => {
             resolve(true);
@@ -158,30 +159,54 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
-    socket.on("print:printer", async (response) => {
-      console.log("response", response);
+    socket.on("insert-teacher", (teacher) => {
+      createTeacherInCatraca(teacher);
+    });
 
+    socket.on("update-teacher", (teacher) => {
+      createTeacherInCatraca(teacher);
+    });
+
+    socket.on("insert-employee", (employee) => {
+      createEmployeeInCatraca(employee);
+    });
+
+    socket.on("update-employee", (employee) => {
+      createEmployeeInCatraca(employee);
+    });
+
+    socket.on("delete-employee", (employee) => {
+      deleteEmployee(employee);
+    });
+
+    socket.on("delete-teacher", (teacher) => {
+      deleteTeacher(teacher);
+    });
+
+    socket.on("delete-enrollment", (enrollment) => {
+      deleteEnrollment(enrollment);
+    });
+
+    socket.on("print:printer", async (response) => {
       try {
         const { data: printer } = await api.get(
           `/printers/${response?.printerId}`
         );
-
-        console.log("printer", printer);
-        // get printer?
-        window.printerAPI.print(printer, response?.type, response?.data);
+        if (printer)
+          window.printerAPI.print(printer, response?.type, response?.data);
+        else
+          toast.error(
+            "Não foi possível encontrar a impressora, verifique as configurações.",
+            { duration: 15000 }
+          );
       } catch (err) {
         console.log(err);
       }
-
-      // window.printerAPI
-      //   .print("Olá impressora!")
-      //   .then((res) => console.log("Impresso com sucesso:", res))
-      //   .catch((err) => console.error("Erro ao imprimir:", err));
     });
   };
 
   // 🔹 Cria usuário na catraca local
-  const createUserInCatraca = async (enrollment) => {
+  const createEnrollmentInCatraca = async (enrollment) => {
     console.log("📥 Novo usuário para criar na catraca:", enrollment);
     try {
       await api.post("/enrollments", { ...enrollment, synced: false });
@@ -232,6 +257,117 @@ export const SocketProvider = ({ children }) => {
     } catch (err) {
       console.error("❌ Erro ao criar usuário na catraca:", err);
       // toast.error("Não foi possível cadastrar usuário na catraca");
+    }
+  };
+
+  const createTeacherInCatraca = async (teacher) => {
+    console.log("📥 Novo professor para criar na catraca:", teacher);
+    try {
+      const { diffPicture } = await api.post("/teachers", teacher);
+
+      if (teacher?.person?.picture && diffPicture) {
+        const { data: settings } = await api.get("/settings");
+        const ip = settings?.ip;
+        const username = settings?.username;
+        const password = settings?.password;
+
+        const { data: response } = await login(ip, {
+          login: username,
+          password,
+        });
+        if (!response?.session)
+          throw new Error("Falha ao autenticar na catraca");
+
+        await createOrUpdateUsers(ip, response?.session, [
+          {
+            id: teacher?.person?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
+            name: teacher?.person?.name,
+            registration: "",
+          },
+        ]);
+
+        await addFace(
+          ip,
+          response?.session,
+          teacher?.person?.identifierCatraca,
+          teacher?.person?.picture
+            ?.replace("data:image/png;base64,", "")
+            ?.replace("data:image/jpeg;base64,", "")
+        );
+
+        console.log("✅ Professor criado com sucesso na catraca");
+      }
+    } catch (err) {
+      console.error("❌ Erro ao criar professor na catraca:", err);
+    }
+  };
+
+  const createEmployeeInCatraca = async (employee) => {
+    console.log("📥 Novo funcionário para criar na catraca:", employee);
+    try {
+      const { diffPicture } = await api.post("/employees", employee);
+
+      if (employee?.person?.picture && diffPicture) {
+        const { data: settings } = await api.get("/settings");
+        const ip = settings?.ip;
+        const username = settings?.username;
+        const password = settings?.password;
+
+        const { data: response } = await login(ip, {
+          login: username,
+          password,
+        });
+        if (!response?.session)
+          throw new Error("Falha ao autenticar na catraca");
+
+        await createOrUpdateUsers(ip, response?.session, [
+          {
+            id: employee?.person?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
+            name: employee?.person?.name,
+            registration: "",
+          },
+        ]);
+
+        await addFace(
+          ip,
+          response?.session,
+          employee?.person?.identifierCatraca,
+          employee?.person?.picture
+            ?.replace("data:image/png;base64,", "")
+            ?.replace("data:image/jpeg;base64,", "")
+        );
+
+        console.log("✅ Funcionário criado com sucesso na catraca");
+      }
+    } catch (err) {
+      console.error("❌ Erro ao criar funcionário na catraca:", err);
+    }
+  };
+
+  const deleteEnrollment = async (enrollment) => {
+    console.log("📥 Exclusão de matrícula:", enrollment);
+    try {
+      await api.delete("/enrollments/" + enrollment?.id);
+    } catch (err) {
+      console.error("❌ Erro ao excluir matrícula:", err);
+    }
+  };
+
+  const deleteEmployee = async (employee) => {
+    console.log("📥 Exclusão de funcionário:", employee);
+    try {
+      await api.delete("/employees/" + employee?.id);
+    } catch (err) {
+      console.error("❌ Erro ao excluir matrícula:", err);
+    }
+  };
+
+  const deleteTeacher = async (teacher) => {
+    console.log("📥 Exclusão de professor:", teacher);
+    try {
+      await api.delete("/teachers/" + teacher?.id);
+    } catch (err) {
+      console.error("❌ Erro ao excluir professor:", err);
     }
   };
 

@@ -21,6 +21,14 @@ const Historic = new EntitySchema({
       type: "int",
       nullable: true, // parte da FK composta
     },
+    teacherId: {
+      type: "varchar",
+      nullable: true, // parte da FK composta
+    },
+    employeeId: {
+      type: "varchar",
+      nullable: true, // parte da FK composta
+    },
     catracaId: {
       type: "varchar",
       nullable: false,
@@ -83,6 +91,38 @@ const Historic = new EntitySchema({
           name: "catracaId",
           referencedColumnName: "id",
         },
+      ],
+      inverseSide: "historics",
+      onDelete: "CASCADE",
+    },
+    employee: {
+      type: "many-to-one",
+      target: "Employee",
+      joinColumns: [
+        {
+          name: "employeeId",
+          referencedColumnName: "id",
+        },
+        // {
+        //   name: "identifierCatraca",
+        //   referencedColumnName: "identifierCatraca",
+        // },
+      ],
+      inverseSide: "historics",
+      onDelete: "CASCADE",
+    },
+    teacher: {
+      type: "many-to-one",
+      target: "Teacher",
+      joinColumns: [
+        {
+          name: "teacherId",
+          referencedColumnName: "id",
+        },
+        // {
+        //   name: "identifierCatraca",
+        //   referencedColumnName: "identifierCatraca",
+        // },
       ],
       inverseSide: "historics",
       onDelete: "CASCADE",

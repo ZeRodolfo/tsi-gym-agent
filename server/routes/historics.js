@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
     const historics = await repo.find({
       order: { attendedAt: "desc" },
       take: 25,
-      relations: ["enrollment"],
+      relations: ["enrollment", "teacher", "employee"],
     });
 
     return res.status(200).json(historics);
@@ -28,7 +28,7 @@ router.get("/last-access", async (req, res) => {
   try {
     const repo = AppDataSource.getRepository("Historic");
     const historics = await repo.find({
-      relations: ["enrollment"],
+      relations: ["enrollment", "teacher", "employee"],
       order: { attendedAt: "desc" },
       take: 1,
     });

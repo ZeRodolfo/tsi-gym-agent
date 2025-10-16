@@ -113,6 +113,8 @@ export default function AccessControl() {
       </div>
     );
 
+  const item = historic?.enrollment || historic?.teacher || historic?.employee;
+
   return (
     <section className="px-3">
       <div className="text-center">
@@ -121,45 +123,45 @@ export default function AccessControl() {
       <div className="w-full flex flex-wrap gap-3 mt-8">
         <div>
           <img
-            src={historic?.enrollment?.picture || logo}
+            src={item?.picture || logo}
             alt="Logo da TSI Gym"
             className="w-[120px] h-[120px] rounded-md border-2 border-primary"
           />
         </div>
         {historic?.type === "terminal" ? (
           <div className="flex flex-col gap-0">
-            <div>
-              <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
-              <span>
-                {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
-                  "000000"}
-              </span>
-            </div>
+            {historic?.enrollment && (
+              <div>
+                <Label className="font-semibold text-[16px]">Matrícula:</Label>{" "}
+                <span>
+                  {historic?.enrollment?.code?.toString()?.padStart(6, "0") ||
+                    "000000"}
+                </span>
+              </div>
+            )}
             <div>
               <Label className="font-semibold text-[16px]">
                 Nome do usuário:
               </Label>{" "}
-              <span>
-                {historic?.enrollment?.name || "Usuário não identificado"}
-              </span>
+              <span>{item?.name || "Usuário não identificado"}</span>
             </div>
             <div>
               <Label className="font-semibold text-[16px]">
                 Dt. Nascimento:
               </Label>{" "}
-              <span>{historic?.enrollment?.birthdate || "N/A"}</span>
+              <span>{item?.birthdate || "N/A"}</span>
             </div>
             <div>
               <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
               <span>
-                {historic?.enrollment?.addressZipcode
+                {item?.addressZipcode
                   ? [
-                      historic?.enrollment?.addressStreet,
-                      historic?.enrollment?.addressNumber,
-                      historic?.enrollment?.addressNeighborhood,
-                      historic?.enrollment?.addressCity,
-                      historic?.enrollment?.addressState,
-                      historic?.enrollment?.addressZipcode,
+                      item?.addressStreet,
+                      item?.addressNumber,
+                      item?.addressNeighborhood,
+                      item?.addressCity,
+                      item?.addressState,
+                      item?.addressZipcode,
                     ]
                       .filter(Boolean)
                       .join(", ")

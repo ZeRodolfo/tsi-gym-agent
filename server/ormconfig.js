@@ -9,6 +9,10 @@ const { Settings } = require("./entities/Settings");
 const { Historic } = require("./entities/Historic");
 const { Printer } = require("./entities/Printer");
 const { Company } = require("./entities/Company");
+const { Teacher } = require("./entities/Teacher");
+const { Employee } = require("./entities/Employee");
+const { WorkTime } = require("./entities/WorkTime");
+
 const logger = require("./utils/logger");
 const dbPath =
   process.env.NODE_ENV === "development"
@@ -16,6 +20,7 @@ const dbPath =
     : path.join(app.getPath("userData"), "agent.db");
 
 logger.info("Database filename: " + dbPath);
+
 const AppDataSource = new DataSource({
   type: "sqlite",
   // Força o TypeORM a usar a biblioteca importada
@@ -23,7 +28,17 @@ const AppDataSource = new DataSource({
   database: dbPath,
   synchronize: true, // cria/atualiza tabelas automaticamente
   logging: false,
-  entities: [Enrollment, Catraca, Settings, Historic, Printer, Company],
+  entities: [
+    Enrollment,
+    Catraca,
+    Settings,
+    Historic,
+    Printer,
+    Company,
+    Teacher,
+    Employee,
+    WorkTime,
+  ],
 });
 
 module.exports = {

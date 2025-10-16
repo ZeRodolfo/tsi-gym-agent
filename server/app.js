@@ -87,6 +87,11 @@ function startServer() {
   app.use((req, res, next) => {
     const body = req.body;
     if (body?.picture) delete body.picture;
+    if (body?.person?.picture) delete body.person.picture;
+    if (body?.student?.person?.picture) delete body.student.person.picture;
+    if (body?.employee?.person?.picture) delete body.employee.person.picture;
+    if (body?.teacher?.person?.picture) delete body.teacher.person.picture;
+    if (body?.supplier?.person?.picture) delete body.supplier.person.picture;
 
     logger.info("Rota", {
       method: req.method,
