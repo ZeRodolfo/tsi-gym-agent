@@ -21,7 +21,7 @@ import { toast } from "react-toastify";
 import { useSocketLocal } from "contexts/SocketLocal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchHistoricLastAccess } from "services/historic";
-import logo from 'assets/logo.png'; // Caminho relativo a partir do seu componente
+import logo from "assets/logo.png"; // Caminho relativo a partir do seu componente
 
 export default function AccessControl() {
   const { socketLocal } = useSocketLocal();
@@ -114,7 +114,7 @@ export default function AccessControl() {
     );
 
   return (
-    <>
+    <section className="px-3">
       <div className="text-center">
         <Title className="text-xl">Último acesso na Catraca</Title>
       </div>
@@ -198,6 +198,6 @@ export default function AccessControl() {
             : "NEGADO"}
         </Label>
       </div>
-    </>
+    </section>
   );
 }

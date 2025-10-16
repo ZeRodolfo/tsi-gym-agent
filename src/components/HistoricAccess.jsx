@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { useSocketLocal } from "contexts/SocketLocal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchHistoric } from "services/historic";
-import logo from 'assets/logo.png'; // Caminho relativo a partir do seu componente
+import logo from "assets/logo.png"; // Caminho relativo a partir do seu componente
 
 export default function HistoricAccess() {
   const { socketLocal } = useSocketLocal();
@@ -45,7 +45,7 @@ export default function HistoricAccess() {
     );
 
   return (
-    <>
+    <section className="px-3">
       <div className="text-center">
         <Title className="text-xl">Histórico de acessos na Catraca</Title>
       </div>
@@ -137,6 +137,6 @@ export default function HistoricAccess() {
           </div>
         </div>
       ))}
-    </>
+    </section>
   );
 }

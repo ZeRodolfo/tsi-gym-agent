@@ -31,3 +31,22 @@ export async function fetchSettings() {
 export const getSettings = async () => {
   return await api.get("/settings");
 };
+
+export async function fetchSettingsAll() {
+  try {
+    const { data } = await api.get("/settings/all");
+    return data;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+}
+
+export const printerValidateTokens = async (
+  payload = {
+    clientId: "",
+    clientSecret: "",
+  }
+) => {
+  return await api.post(`/settings/printers/validate-tokens`, payload);
+};

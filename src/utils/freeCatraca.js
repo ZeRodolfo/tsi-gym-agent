@@ -23,7 +23,6 @@ export const handleFreeCatracaConfirm = async (
       password: settings?.password,
     });
     const { session } = response?.data || {};
-    console.log("session", session);
     if (!session)
       return toast.error(
         "Não foi possível se comunicar com a catraca. Por favor, verifique as configurações ou realize a sincronização."
@@ -38,6 +37,7 @@ export const handleFreeCatracaConfirm = async (
     await api.post("/historic", {
       type: "manually",
       reasonId: reason?.id,
+      catracaId: catraca?.id,
       companyId: catraca?.companyId,
       branchId: catraca?.branchId,
       status: "success",
@@ -52,6 +52,7 @@ export const handleFreeCatracaConfirm = async (
     await api.post("/historic", {
       type: "manually",
       reasonId: reason?.id,
+      catracaId: catraca?.id,
       companyId: catraca?.companyId,
       branchId: catraca?.branchId,
       status: "error",

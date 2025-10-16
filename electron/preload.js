@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld("system", {
 });
 
 contextBridge.exposeInMainWorld("printerAPI", {
-  print: (text) => ipcRenderer.invoke("printer:print", text),
+  print: (printer, type, payload) =>
+    ipcRenderer.send("printer:print", printer, type, payload),
 });

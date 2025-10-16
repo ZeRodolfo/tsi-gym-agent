@@ -37,6 +37,9 @@ module.exports = async function job() {
       logger.info("Históricos sincronizados com sucesso!");
     }
   } catch (error) {
-    logger.error("Erro ao sincronizar históricos:", error.message);
+    logger.error(
+      "Erro ao sincronizar históricos:",
+      error?.response?.data || error.message
+    );
   }
 };

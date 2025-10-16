@@ -9,50 +9,44 @@ const Settings = new EntitySchema({
       type: "int",
       generated: true,
     },
-    ip: {
+    type: { type: "varchar" }, // catraca, printer
+    ip: { type: "varchar", nullable: true },
+    port: { type: "int", nullable: true },
+    username: { type: "varchar", nullable: true },
+    password: { type: "varchar", nullable: true },
+    ipLocal: { type: "varchar", nullable: true },
+    catraSideToEnter: { type: "varchar", nullable: true },
+    customAuthMessage: { type: "varchar", nullable: true },
+    customDenyMessage: { type: "varchar", nullable: true },
+    customNotIdentifiedMessage: { type: "varchar", nullable: true },
+    customMaskMessage: { type: "varchar", nullable: true },
+    enableCustomAuthMessage: { type: "varchar", nullable: true },
+    enableCustomDenyMessage: { type: "varchar", nullable: true },
+    enableCustomNotIdentifiedMessage: { type: "varchar", nullable: true },
+    enableCustomMaskMessage: { type: "varchar", nullable: true },
+    catracaId: {
       type: "varchar",
+      nullable: true,
     },
-    port: {
-      type: "int",
-    },
-    username: {
+    printerId: {
       type: "varchar",
-      unique: true,
+      nullable: true,
     },
-    password: {
-      type: "varchar",
+  },
+  relations: {
+    catraca: {
+      type: "one-to-one",
+      target: "Catraca",
+      joinColumn: { name: "catracaId", referencedColumnName: "id" }, // ✅ aqui é o lado dono
+      inverseSide: "settings",
+      onDelete: "CASCADE",
     },
-    ipLocal: {
-      type: 'varchar',
-      default: null
-    },
-    catraSideToEnter: {
-      type: 'varchar',
-      default: null
-    },
-    customAuthMessage: {
-      type: "varchar",
-    },
-    customDenyMessage: {
-      type: "varchar",
-    },
-    customNotIdentifiedMessage: {
-      type: "varchar",
-    },
-    customMaskMessage: {
-      type: "varchar",
-    },
-    enableCustomAuthMessage: {
-      type: "varchar",
-    },
-    enableCustomDenyMessage: {
-      type: "varchar",
-    },
-    enableCustomNotIdentifiedMessage: {
-      type: "varchar",
-    },
-    enableCustomMaskMessage: {
-      type: "varchar",
+    printer: {
+      type: "one-to-one",
+      target: "Printer",
+      joinColumn: { name: "printerId", referencedColumnName: "id" }, // ✅ aqui é o lado dono
+      inverseSide: "settings",
+      onDelete: "CASCADE",
     },
   },
 });

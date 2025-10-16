@@ -40,6 +40,9 @@ module.exports = async function job() {
         `Enviado para o agente sincronizar ${response.data.length} matriculas...`
       );
   } catch (error) {
-    logger.error("Erro ao solicitar sincronização das matrículas:", error);
+    logger.error(
+      "Erro ao solicitar sincronização das matrículas:",
+      error?.response?.data || error
+    );
   }
 };

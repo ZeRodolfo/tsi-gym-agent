@@ -45,6 +45,7 @@ router.post("/", async (req, res) => {
     studentId,
     enrollmentId,
     identifierCatraca,
+    catracaId,
     companyId,
     branchId,
     reasonId,
@@ -57,6 +58,7 @@ router.post("/", async (req, res) => {
   const payload = {
     studentId,
     enrollment: { id: enrollmentId, identifierCatraca }, // cria vínculo via FK
+    catraca: { id: catracaId },
     companyId,
     branchId,
     attendedAt: new Date(),

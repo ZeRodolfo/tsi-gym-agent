@@ -7,6 +7,8 @@ const { Enrollment } = require("./entities/Enrollment");
 const { Catraca } = require("./entities/Catraca");
 const { Settings } = require("./entities/Settings");
 const { Historic } = require("./entities/Historic");
+const { Printer } = require("./entities/Printer");
+const { Company } = require("./entities/Company");
 const logger = require("./utils/logger");
 const dbPath =
   process.env.NODE_ENV === "development"
@@ -21,7 +23,7 @@ const AppDataSource = new DataSource({
   database: dbPath,
   synchronize: true, // cria/atualiza tabelas automaticamente
   logging: false,
-  entities: [Enrollment, Catraca, Settings, Historic],
+  entities: [Enrollment, Catraca, Settings, Historic, Printer, Company],
 });
 
 module.exports = {

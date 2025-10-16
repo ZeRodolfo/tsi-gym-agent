@@ -1,9 +1,11 @@
 const express = require("express");
+const { startOfDay, isAfter } = require("date-fns");
 const catracaRoutes = require("./catraca"); // Importa as rotas
 const settingsRoutes = require("./settings"); // Importa as rotas
 const enrollmentsRoutes = require("./enrollments"); // Importa as rotas
 const historicsRoutes = require("./historics"); // Importa as rotas
 const syncRoutes = require("./sync"); // Importa as rotas
+const printersRoutes = require("./printers"); // Importa as rotas
 const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger");
 
@@ -169,6 +171,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
       if (catraca) {
         const historic = repoHistoric.create({
+          catraca: { id: catraca?.id },
           companyId: catraca?.companyId,
           branchId: catraca?.branchId,
           type: "terminal",
@@ -184,7 +187,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         result: {
           event: 6,
           message,
-          user_name: "",
+          user_name: "Usuário",
           user_image: false,
           user_id: userId,
           portal_id: portalId,
@@ -217,6 +220,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       const message = "Matrícula não localizada.";
       if (catraca) {
         const historic = repoHistoric.create({
+          catraca: { id: catraca?.id },
           companyId: catraca?.companyId,
           branchId: catraca?.branchId,
           type: "terminal",
@@ -232,7 +236,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         result: {
           event: 6,
           message: "Matrícula não localizada.",
-          user_name: "",
+          user_name: "Usuário",
           user_image: user_has_image === "1",
           user_id: userId,
           portal_id: portalId,
@@ -309,9 +313,11 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     const payloadHistoric = {
       studentId,
       enrollment: { id, identifierCatraca }, // já cria o vínculo via FK
+      catraca: { id: catraca?.id },
       companyId,
       branchId,
       type: "terminal",
+      identifierCatraca,
       attendedAt: new Date(),
     };
 
@@ -407,44 +413,20 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       });
     }
 
-    // checar matricula, status
+    const today = startOfDay(new Date());
     const extendedAt = enrollment.extendedAt
-      ? stripTime(enrollment.extendedAt)
+      ? startOfDay(enrollment.extendedAt.replace("Z", ""))
       : null;
-    // const endDate = new Date(enrollment.endDate);
-    const today = stripTime(new Date());
-
-    const endDateOnly = stripTime(enrollment.endDate);
+    const endDateOnly = startOfDay(enrollment.endDate.replace("Z", ""));
     const extendedAtOnly = extendedAt ? extendedAt : null;
+    const isExpiredNormal = isAfter(today, endDateOnly); // endDateOnly?.getTime() < today?.getTime();
+    const isExpiredExtended = extendedAtOnly && isAfter(today, extendedAtOnly); //extendedAtOnly?.getTime() < today?.getTime(); // expira só se passou do dia estendido
 
-    const isExpiredNormal = endDateOnly?.getTime() < today?.getTime();
-    const isExpiredExtended =
-      extendedAtOnly && extendedAtOnly?.getTime() < today?.getTime(); // expira só se passou do dia estendido
-
-    if (isExpiredNormal || isExpiredExtended) {
-      const message = "Matrícula expirada.";
-      const historic = repoHistoric.create({
-        ...payloadHistoric,
-        status: "expired",
-        message,
-      });
-      await repoHistoric.save(historic);
-      io.emit("access", { ...historic, enrollment });
-
-      return res.json({
-        result: {
-          event: 6,
-          message,
-          user_id: userId,
-          user_name: userName || user?.name,
-          user_image: user_has_image === "1",
-          portal_id: portalId,
-          actions: [],
-        },
-      });
-    }
-
-    if (enrollment?.status === "expired") {
+    if (
+      isExpiredExtended ||
+      (isExpiredNormal && !extendedAt) ||
+      (!isExpiredNormal && enrollment?.status === "expired")
+    ) {
       const message = "Matrícula expirada.";
       const historic = repoHistoric.create({
         ...payloadHistoric,
@@ -503,6 +485,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     const message = "Matrícula não localizada.";
     if (catraca) {
       const historic = repoHistoric.create({
+        catraca: { id: catraca?.id },
         companyId: catraca?.companyId,
         branchId: catraca?.branchId,
         type: "terminal",
@@ -518,7 +501,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       result: {
         event: 6,
         message,
-        user_name: "",
+        user_name: "Usuário",
         user_image: false,
         user_id: userId,
         portal_id: portalId,
@@ -533,4 +516,5 @@ router.use("/settings", settingsRoutes);
 router.use("/enrollments", enrollmentsRoutes);
 router.use("/historic", historicsRoutes);
 router.use("/sync", syncRoutes);
+router.use("/printers", printersRoutes);
 module.exports = router;

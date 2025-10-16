@@ -48,6 +48,8 @@ router.post("/", async (req, res) => {
     companyId,
     branchId,
     synced,
+    createdAt,
+    updatedAt
   } = req.body || {};
 
   const payload = {

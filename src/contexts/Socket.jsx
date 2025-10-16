@@ -82,6 +82,7 @@ export const SocketProvider = ({ children }) => {
   // 🔹 Inicia socket de comunicação
   const initSocket = async (data) => {
     const machineId = await window.system.getMachineId();
+    console.log(`Machine ID: ${machineId}`);
     const socket = io(process.env.REACT_APP_WSS_BASE_URL, {
       query: {
         companyId: data.companyId,
@@ -157,11 +158,25 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
-    socket.on("print", (printer) => {
-      window.printerAPI
-        .print("Olá impressora!")
-        .then((res) => console.log("Impresso com sucesso:", res))
-        .catch((err) => console.error("Erro ao imprimir:", err));
+    socket.on("print:printer", async (response) => {
+      console.log("response", response);
+
+      try {
+        const { data: printer } = await api.get(
+          `/printers/${response?.printerId}`
+        );
+
+        console.log("printer", printer);
+        // get printer?
+        window.printerAPI.print(printer, response?.type, response?.data);
+      } catch (err) {
+        console.log(err);
+      }
+
+      // window.printerAPI
+      //   .print("Olá impressora!")
+      //   .then((res) => console.log("Impresso com sucesso:", res))
+      //   .catch((err) => console.error("Erro ao imprimir:", err));
     });
   };
 
@@ -170,43 +185,50 @@ export const SocketProvider = ({ children }) => {
     console.log("📥 Novo usuário para criar na catraca:", enrollment);
     try {
       await api.post("/enrollments", { ...enrollment, synced: false });
-      const { data: catraca } = await api.get("/catracas/current");
-      const { data: settings } = await api.get("/settings");
-      const ip = settings?.ip;
-      const username = settings?.username;
-      const password = settings?.password;
 
-      const { data: response } = await login(ip, { login: username, password });
-      if (!response?.session) throw new Error("Falha ao autenticar na catraca");
-      const user = await createOrUpdateUsers(ip, response?.session, [
-        {
-          id: enrollment?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
-          name: enrollment?.student?.name,
-          registration: "",
-        },
-      ]);
+      if (enrollment?.picture) {
+        const { data: catraca } = await api.get("/catracas/current");
+        const { data: settings } = await api.get("/settings");
+        const ip = settings?.ip;
+        const username = settings?.username;
+        const password = settings?.password;
 
-      const image = await addFace(
-        ip,
-        response?.session,
-        enrollment?.identifierCatraca,
-        enrollment?.picture
-          ?.replace("data:image/png;base64,", "")
-          ?.replace("data:image/jpeg;base64,", "")
-      );
+        const { data: response } = await login(ip, {
+          login: username,
+          password,
+        });
+        if (!response?.session)
+          throw new Error("Falha ao autenticar na catraca");
+        const user = await createOrUpdateUsers(ip, response?.session, [
+          {
+            id: enrollment?.identifierCatraca, // persiste o ID da matrícula na catraca como identificador
+            name: enrollment?.student?.name,
+            registration: "",
+          },
+        ]);
 
-      console.log("✅ Usuário criado com sucesso na catraca");
-      await api.post("/enrollments", { ...enrollment, synced: true });
+        const image = await addFace(
+          ip,
+          response?.session,
+          enrollment?.identifierCatraca,
+          enrollment?.picture
+            ?.replace("data:image/png;base64,", "")
+            ?.replace("data:image/jpeg;base64,", "")
+        );
 
-      // opcional: enviar confirmação ao servidor via socket
-      // não reconheceu o socket, esta undefined
-      // socket.emit("enrollment-created", {
-      //   enrollmentId: enrollment.id,
-      //   catracaId: catraca.id,
-      //   user: Json.stringify(user),
-      //   picture: Json.stringify(image),
-      //   timestamp: new Date().toISOString(),
-      // });
+        console.log("✅ Usuário criado com sucesso na catraca");
+        await api.post("/enrollments", { ...enrollment, synced: true });
+
+        // opcional: enviar confirmação ao servidor via socket
+        // não reconheceu o socket, esta undefined
+        // socket.emit("enrollment-created", {
+        //   enrollmentId: enrollment.id,
+        //   catracaId: catraca.id,
+        //   user: Json.stringify(user),
+        //   picture: Json.stringify(image),
+        //   timestamp: new Date().toISOString(),
+        // });
+      }
     } catch (err) {
       console.error("❌ Erro ao criar usuário na catraca:", err);
       // toast.error("Não foi possível cadastrar usuário na catraca");
@@ -226,13 +248,16 @@ export const SocketProvider = ({ children }) => {
 
   const updatePictureByPerson = async (person) => {
     try {
-      const enrollments = await api.patch("/enrollments/update-picture", person);
+      const enrollments = await api.patch(
+        "/enrollments/update-picture",
+        person
+      );
       if (!enrollments?.length) {
         console.log("Usuário não encontrado na catraca...");
         return;
       }
 
-      const enrollment = enrollments[0]
+      const enrollment = enrollments[0];
       const { data: settings } = await api.get("/settings");
       const ip = settings?.ip;
       const username = settings?.username;

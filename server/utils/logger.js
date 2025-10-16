@@ -40,7 +40,7 @@ const logger = createLogger({
         format.colorize(),
         format.timestamp({ format: "HH:mm:ss" }),
         format.printf(({ level, message, timestamp, ...meta }) => {
-          let extra = Object.keys(meta).length
+          const extra = Object.keys(meta).length
             ? ` ${JSON.stringify(meta)}`
             : "";
           return `[${timestamp}] ${level}: ${message}${extra}`;
