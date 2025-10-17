@@ -262,8 +262,8 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       if (!enrollments?.length) {
         if (teacher || employee) {
           const message = teacher
-            ? "Professor não fora do horário"
-            : "Funcionário não fora do horário";
+            ? "Professor fora do horário"
+            : "Funcionário fora do horário";
           if (catraca) {
             const historic = repoHistoric.create({
               catraca: { id: catraca?.id },
