@@ -24,3 +24,59 @@
     }
   }
   
+
+
+//   {
+//   "name": "tsi-gym-agent",
+//   // ... outras propriedades ...
+//   "main": "build/electron.js",
+//   "build": {
+//     "publish": null,
+//     "asar": true, // Ativado para a maior parte da aplicação
+//     "asarUnpack": [ // Especifica o que deve ser desempacotado
+//       "**\\*.node", // Garante que todos os módulos nativos sejam desempacotados
+//       "node_modules/sqlite3/**/*",
+//       "node_modules/better-sqlite3/**/*"
+//     ],
+//     "extraResources": [ // Copia recursos extras para a pasta de recursos da aplicação (fora do ASAR)
+//       // Se houver algum recurso que não precise estar dentro do ASAR mas precise ser acessível
+//       // por exemplo, um banco de dados pré-existente ou arquivos de configuração
+//       // { "from": "path/to/some/data", "to": "data" }
+//     ],
+//     "files": [ // O que será incluído no pacote (maioria dentro do ASAR)
+//       "build/**/*", // Inclui todo o conteúdo gerado pela build do React e do servidor
+//       "electron/preload.js",
+//       "package-lock.json",
+//       "package.json"
+//       // Se houver outros arquivos na raiz do projeto que devem ser incluídos, liste-os aqui
+//     ],
+//     "win": {
+//       "target": "nsis",
+//       "icon": "buildResources/icon.ico"
+//     },
+//     "linux": {
+//       "icon": "build/icons",
+//       "category": "Settings",
+//       "target": [
+//         "AppImage"
+//       ]
+//     }
+//   },
+//   // ... devDependencies e dependencies ...
+// }
+
+"extraResources": [
+      {
+        "from": "node_modules/sqlite3",
+        "to": "node_modules/sqlite3"
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "node_modules/sqlite3",
+        "to": "node_modules/sqlite3"
+      }
+    ],
+    "extraMetadata": {
+      "asar": false
+    },

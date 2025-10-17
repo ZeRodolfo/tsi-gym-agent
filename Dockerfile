@@ -1,87 +1,108 @@
+# FROM electronuserland/builder:wine
+
+# # Dependências necessárias
+# RUN dpkg --add-architecture i386 \
+#     && apt-get update \
+#     && apt-get install -y --no-install-recommends \
+#        wine64 wine32 wine32-preloader winbind \
+#        mono-devel ca-certificates build-essential \
+#        python3 git unzip wget p7zip-full icnsutils graphicsmagick xz-utils fuse \
+#     && rm -rf /var/lib/apt/lists/*
+
+# RUN npm install --global electron-builder electron-rebuild cpx
+
+# # Configurações Wine e Node
+# ENV WINEARCH=win64
+# ENV WINEDEBUG=-all
+# ENV NODE_ENV=production
+
+# # 🔹 Forçar local de cache do electron-builder (vamos montar volume depois)
+# ENV ELECTRON_BUILDER_CACHE=/project/.cache/electron-builder
+# # ENV ELECTRON_BUILDER_CACHE=/root/.cache/electron-builder
+# # "cache": "node_modules/.cache/electron-builder"
+
+
+# WORKDIR /project
+
+# # Cria e entra no diretório 'build'
+# RUN mkdir build
+# WORKDIR /project/build
+
+# # Copia os arquivos package*.json para a pasta 'build'
+# COPY package*.json ./
+
+# # Instala as dependências na pasta 'build'
+# RUN npm ci
+
+# # Copia o restante do código para o diretório de trabalho do estágio
+# WORKDIR /project
+
+# # Copia os arquivos package*.json para a pasta 'build'
+# COPY package*.json ./
+
+# # Instala as dependências na pasta 'build'
+# RUN npm ci
+
+# COPY . .
+
+# # Build completo
+# # RUN npm run build:all
+# # RUN electron-builder install-app-deps
+
+# # 3. Recompila as dependências nativas (incluindo a sqlite3) para o Electron
+# # Isso garante que o binário node_sqlite3.node seja compilado corretamente para a plataforma de destino (Windows, via Wine)
+# # RUN npm rebuild --runtime=electron --target=$(node -p "require('./package.json').devDependencies['electron']") --dist-url=https://atom.io/download/electron
+
+# # 4. Instala as dependências do aplicativo, se houver, e do electron-builder
+# RUN electron-builder install-app-deps
+
+# # Comando padrão: gerar .exe
+# CMD ["npm", "run", "electron:package:win"]
+
+
 FROM electronuserland/builder:wine
 
-# Instala Wine, Mono e libs necessárias para cross-build do Windows
 RUN dpkg --add-architecture i386 \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-       wine64 \
-       wine32 \
-       wine32-preloader \
-       winbind \
-       mono-devel \
-       ca-certificates \
-       build-essential \
-       python3 \
-       git \
-       unzip \
-       wget \
-       p7zip-full \
-       icnsutils \
-       graphicsmagick \
-       xz-utils \
-       fuse \
+       wine64 wine32 wine32-preloader winbind \
+       mono-devel ca-certificates build-essential \
+       python3 python3-pip python3-distutils g++ make \
+       libudev-dev git unzip wget p7zip-full icnsutils graphicsmagick xz-utils fuse \
     && rm -rf /var/lib/apt/lists/*
 
-# Garante que Wine está disponível
+RUN npm install --global electron-builder electron-rebuild cpx
+
 ENV WINEARCH=win64
 ENV WINEDEBUG=-all
+ENV NODE_ENV=production
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
+ENV npm_config_build_from_source=false
+ENV ELECTRON_BUILDER_CACHE=/project/.cache/electron-builder
 
 WORKDIR /project
 
 COPY package*.json ./
-
 RUN npm ci
 
 COPY . .
 
-RUN npm install -g electron-builder
+# Primeiro builda React e backend
+RUN npm run build:react && npm run build:server
 
-# Build do React
-RUN npm run build:react
-# RUN npm run build:app
+# Instala dependências nativas do Electron
+RUN electron-builder install-app-deps
 
-# Copia servidor local Express
-RUN mkdir -p build/server \
-    && cp -r public/server build/server
-
-# Comando final: gera instalador Windows
+# Gera o .exe (Windows)
 CMD ["npm", "run", "electron:package:win"]
 
 
-# # Baseado em Node LTS
-# FROM node:20-bullseye
+# docker build -t tsi-gym-agent-builder .
+# docker run --rm -v ${PWD}/dist:/project/dist tsi-gym-agent-builder
+# docker run --rm \
+#   -v $PWD/dist:/project/dist \
+#   -v $PWD/.cache/electron-builder:/project/node_modules/.cache/electron-builder \
+#   tsi-gym-agent-builder
 
-# # Instala Wine, Mono e dependências de compilação
-# RUN dpkg --add-architecture i386 \
-#     && apt-get update \
-#     && apt-get install -y --no-install-recommends \
-#        wine64 wine32 \
-#        mono-devel \
-#        ca-certificates \
-#        build-essential \
-#        python3 \
-#        git \
-#        unzip \
-#        wget \
-#     && rm -rf /var/lib/apt/lists/*
-
-# # Instala Yarn globalmente
-# RUN corepack enable && corepack prepare yarn@stable --activate
-
-# # Cria diretório da aplicação
-# WORKDIR /project
-
-# # Copia package.json e yarn.lock primeiro para cache
-# COPY package.json yarn.lock ./
-
-# # Instala dependências (sem rebuild nativo ainda)
-# RUN yarn install --frozen-lockfile
-
-# # Copia o resto do código
-# COPY . .
-
-# # Instala electron-builder global (para garantir que está no PATH)
-# RUN yarn global add electron-builder
-
-# # Comando padrão (pode ser sobrescrito no docker run)
-# CMD ["yarn", "electron:package:win"]
+#   -v $HOME/.cache/electron-builder:/root/.cache/electron-builder \

@@ -11,7 +11,7 @@ import {
 import { useRevalidateToken } from "contexts/RevalidateToken";
 import { handleFreeCatracaConfirm } from "utils/freeCatraca";
 
-const reasons = [
+export const REASONS = [
   {
     id: "system-out",
     label: "Sistema fora",
@@ -29,7 +29,7 @@ const reasons = [
   //   label: "Problema com o sistema",
   // },
 ];
-export const FreeCatracaModal = ({ isOpen, onClose }) => {
+export const FreeCatracaModal = ({ isOpen, catraca, onClose }) => {
   const { data, settings } = useRevalidateToken();
 
   return (
@@ -39,16 +39,24 @@ export const FreeCatracaModal = ({ isOpen, onClose }) => {
           <AlertDialogTitle>Liberação de acesso na catraca</AlertDialogTitle>
           <AlertDialogDescription>
             Escolha um motivo para a liberação da catraca{" "}
-            <strong className="capitalize">{data?.name}</strong>.
+            <strong className="capitalize">
+              {catraca?.name || data?.name}
+            </strong>
+            .
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex flex-wrap gap-3 items-start justify-start">
-          {reasons?.map((reason) => (
+          {REASONS?.map((reason) => (
             <button
               key={reason.id}
               type="button"
               onClick={() =>
-                handleFreeCatracaConfirm(data, settings, reason, onClose)
+                handleFreeCatracaConfirm(
+                  catraca || data,
+                  settings,
+                  reason,
+                  onClose
+                )
               }
               className="px-5 py-7 bg-primary hover:bg-primary-700 text-white rounded"
             >

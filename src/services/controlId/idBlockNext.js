@@ -4,7 +4,7 @@ import { Buffer } from "buffer";
 window.Buffer = Buffer;
 
 export const login = async (ip, { login, password }) => {
-  console.log("Tentativa de acesso");
+  console.log("Tentativa de acesso: " + `http://${ip}/login.fcgi`,);
 
   return await axios
     .post(
@@ -92,8 +92,7 @@ export const executeActions = async (ip, session, { action, parameters }) => {
     .post(
       `http://${ip}/execute_actions.fcgi?session=${session}`,
       {
-        action,
-        parameters,
+        actions: [{ action, parameters }],
       },
       {
         headers: { "Content-Type": "application/json" },

@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -42,7 +42,8 @@ function App() {
                   </RevalidateTokenProvider>
                 }
               />
-              <Route path="*" element={<Navigate to="/setup" />} />
+              {/* Fallback apenas se não reconhecer nenhuma rota */}
+              <Route path="*" element={<Navigate to="/setup" replace />} />
             </Routes>
           </Router>
         </SocketLocalProvider>

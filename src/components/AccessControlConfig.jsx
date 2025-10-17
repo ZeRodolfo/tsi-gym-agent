@@ -20,7 +20,6 @@ import {
 } from "components/ui/Select";
 import {
   login,
-  logout,
   customizarMensagemEventos,
 } from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
@@ -29,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { useRevalidateToken } from "contexts/RevalidateToken";
 import { api } from "services/api";
 import { FreeCatracaModal } from "components/FreeCatracaModal";
+import { ResetCatracaModal } from "components/ResetCatracaModal";
 
 const CATRACA_MODELS = {
   idblock_next: "ID Block Next",
@@ -50,6 +50,7 @@ export default function AccessControlConfig({ onSetup }) {
   );
   const [sideToEnter, setSideToEnter] = useState("0");
   const [openCatracaModal, setOpenCatracaModal] = useState(false);
+  const [openResetCatracaModal, setOpenResetCatracaModal] = useState(false);
 
   const navigate = useNavigate();
   const { data: catraca, settings, setSettings } = useRevalidateToken();
@@ -60,8 +61,8 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      setIp(settings?.ip);
-      setIpLocal(settings?.ipLocal);
+      setIp(settings?.ip || "");
+      setIpLocal(settings?.ipLocal || "");
       setSideToEnter(settings?.catraSideToEnter || "0");
       setPort(settings?.port || 3000);
       setUsername(settings?.username || "tsitech");
@@ -75,6 +76,13 @@ export default function AccessControlConfig({ onSetup }) {
 
     load();
   }, [settings]);
+
+  const handleTestPrinter = async () => {
+    window.printerAPI
+      .print("<h1>Olá impressora!</h1>")
+      // .then((res) => console.log("Impresso com sucesso:", res))
+      // .catch((err) => console.error("Erro ao imprimir:", err));
+  };
 
   const handleTestComunication = async () => {
     setIsLoadingTest(true);
@@ -146,6 +154,7 @@ export default function AccessControlConfig({ onSetup }) {
 
     try {
       const payload = {
+        type: 'catraca',
         ip,
         port,
         username,
@@ -206,7 +215,7 @@ export default function AccessControlConfig({ onSetup }) {
         <Label>
           <b>MODELO:</b>
           <span className="text-warning ml-2">
-            {CATRACA_MODELS?.[catraca?.model?.type] || "Não definido"}
+            {CATRACA_MODELS?.[catraca?.modelType] || "Não definido"}
           </span>
         </Label>
       </div>
@@ -219,7 +228,7 @@ export default function AccessControlConfig({ onSetup }) {
             <Input
               value={ip}
               onChange={function (e) {
-                setIp(e.target.value);
+                setIp(e.target.value || "");
               }}
               className="flex-1"
               placeholder="___.___.___.___"
@@ -309,7 +318,7 @@ export default function AccessControlConfig({ onSetup }) {
           <Input
             value={ipLocal}
             onChange={function (e) {
-              setIpLocal(e.target.value);
+              setIpLocal(e.target.value || "");
             }}
             className="flex-1"
             placeholder="___.___.___.___"
@@ -378,11 +387,25 @@ export default function AccessControlConfig({ onSetup }) {
 
       <div className="mt-4 flex justify-end space-x-2">
         <Button
+          onClick={handleTestPrinter}
+          variant="secondary"
+          disabled={isLoading}
+        >
+          Testar Impressão
+        </Button>
+        <Button
           onClick={() => setOpenCatracaModal(true)}
           variant="secondary"
           disabled={isLoading}
         >
           Liberar Catraca
+        </Button>
+        <Button
+          onClick={() => setOpenResetCatracaModal(true)}
+          variant="secondary"
+          disabled={isLoading}
+        >
+          Resetar
         </Button>
         <Button onClick={handleSetup} variant="success" disabled={isLoading}>
           {isLoadingSettings ? "Configurando..." : "Iniciar Configuração"}
@@ -395,6 +418,11 @@ export default function AccessControlConfig({ onSetup }) {
       <FreeCatracaModal
         isOpen={openCatracaModal}
         onClose={() => setOpenCatracaModal(false)}
+      />
+
+      <ResetCatracaModal
+        isOpen={openResetCatracaModal}
+        onClose={() => setOpenResetCatracaModal(false)}
       />
     </>
   );

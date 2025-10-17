@@ -7,18 +7,15 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { getCatraca, checkTokens } from "services/catracas";
 import { getSettings } from "services/settings";
+import logo from "assets/logo.png"; // Caminho relativo a partir do seu componente
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_LOCAL_URL,
 });
 
 export default function SetupPage() {
-  const [clientId, setClientId] = useState(
-    "901a1b77-787d-4bba-883c-d5656a8dfd39-APP"
-  );
-  const [clientSecret, setClientSecret] = useState(
-    "a48e4310-94b2-494e-8135-8a94a0f1b78c-APP"
-  );
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
   const navigate = useNavigate();
 
   const handleSaveToken = (data) => {
@@ -35,8 +32,9 @@ export default function SetupPage() {
       const { data: settings } = await getSettings();
 
       if (!settings?.id && !settings?.ip && catraca?.id)
-        navigate("/parameters");
-      else if (catraca?.id) navigate("/main");
+        return navigate("/parameters");
+      else if (catraca?.id && settings?.id && settings?.ip)
+        return navigate("/main");
     };
 
     checkToken();
@@ -68,7 +66,7 @@ export default function SetupPage() {
       <div className="px-3 flex flex-col gap-2 justify-center items-center w-full">
         <div>
           <img
-            src="/logo.png"
+            src={logo}
             alt="Logo da TSI Gym"
             className="w-[180px] h-[180px] rounded-full"
           />

@@ -1,6 +1,6 @@
 {
   "name": "tsi-gym-agent",
-  "version": "1.0.0",
+  "version": "0.0.10",
   "productName": "TSI Gym Agent",
   "homepage": "./",
   "author": {
@@ -10,50 +10,57 @@
   "license": "ISC",
   "description": "TSI Gym Agent is a desktop application for managing gym operations.",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "react-scripts start",
-    "server": "node build/server/index.js",
-
-    "build:react": "react-scripts build",
-    "build:server": "mkdir -p build/server && cp -r public/server/* build/server/",
-
-    "build:electron": "tsc -p electron",
+    "server": "cross-env NODE_ENV=development nodemon server",
+    "electron-dev": "concurrently \"cross-env NODE_ENV=development BROWSER=none npm start\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron public/electron.js\"",
+    "clean": "rimraf build dist",
+    "build:react": "cross-env NODE_ENV=production react-scripts build",
+    "build:server": "mkdir -p build/server && cross-env NODE_ENV=production cpx \"server/**/*\" build/server",
     "build:all": "npm run build:react && npm run build:server",
-
-    "dist": "npm run build:all && electron-builder",
-
-    "electron:package:win": "npm run build:all && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
-    "electron:package:mac": "npm run build:all && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
-    "electron:package:linux": "npm run build:all && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
+    "electron:deps": "electron-builder install-app-deps",
+    "electron:package:win": "npm run build:all && npm run electron:deps && electron-builder --win --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:mac": "npm run build:all && npm run electron:deps && electron-builder --mac --x64 -c.extraMetadata.main=build/electron.js",
+    "electron:package:linux": "npm run build:all && npm run electron:deps && electron-builder --linux --x64 -c.extraMetadata.main=build/electron.js"
   },
   "main": "build/electron.js",
   "build": {
-    "asar": true,
+    "publish": null,
+    "asar": false,
     "asarUnpack": [
-      "**/*.node",
-      "resources/**"
+      "**\\*.node",
+      "node_modules/sqlite3/**/*",
+      "node_modules/better-sqlite3/**/*"
     ],
-    "directories": {
-      "buildResources": "public"
-    },
     "files": [
       "build/**/*",
-      "public/icons/*",
-      "public/assets/icons/*"
+      "electron/preload.js",
+      "package.json"
     ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "buildResources"
+    },
     "win": {
       "target": "nsis",
-      "icon": "public/icons/icon.ico"
+      "icon": "buildResources/icon.ico"
     },
     "linux": {
-      "icon": "public/icons",
-      "category": "Settings"
+      "icon": "build/icons",
+      "category": "Settings",
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
-    "electron": "^32.3.3",
-    "electron-builder": "^26.0.12",
+    "cpx": "^1.5.0",
+    "electron": "32.3.3",
+    "electron-builder": "26.0.12",
+    "electron-is-dev": "1.2.0",
+    "mkdirp": "^3.0.1",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
     "wait-on": "^8.0.3"
@@ -62,8 +69,13 @@
     "@babel/core": "^7.26.10",
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@node-escpos/core": "^0.6.0",
+    "@node-escpos/usb-adapter": "^0.3.1",
     "@radix-ui/react-icons": "^1.3.2",
+    "@tabler/icons-react": "^3.35.0",
     "@tanstack/react-query": "^5.87.4",
+    "@tanstack/react-table": "^8.21.3",
     "add": "^2.0.6",
     "axios": "^1.9.0",
     "better-sqlite3": "^11.10.0",
@@ -75,13 +87,21 @@
     "crypto-browserify": "^3.12.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
-    "electron-is-dev": "^3.0.1",
+    "edge-js": "^24.0.5",
+    "escpos-buffer": "^4.1.0",
+    "escpos-network": "^3.0.0-alpha.5",
+    "escpos-usb": "^3.0.0-alpha.4",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
+    "jimp": "^1.6.0",
     "lucide-react": "^0.503.0",
+    "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "node-machine-id": "^1.1.12",
+    "node-thermal-printer": "^4.5.0",
     "os": "^0.1.2",
+    "path": "^0.12.7",
+    "pdf-to-printer": "^5.6.1",
     "radix-ui": "^1.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -101,6 +121,8 @@
     "typeorm": "^0.3.26",
     "webpack": "^5.99.7",
     "webpack-cli": "^6.0.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "yarn": "^1.22.22"
   },
   "browserslist": {
