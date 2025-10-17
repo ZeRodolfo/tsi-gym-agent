@@ -263,8 +263,11 @@ export const SocketProvider = ({ children }) => {
   const createTeacherInCatraca = async (teacher) => {
     console.log("📥 Novo professor para criar na catraca:", teacher);
     try {
-      const { diffPicture } = await api.post("/teachers", teacher);
+      const {
+        data: { diffPicture },
+      } = await api.post("/teachers", teacher);
 
+      console.log("Diff", diffPicture);
       if (teacher?.person?.picture && diffPicture) {
         const { data: settings } = await api.get("/settings");
         const ip = settings?.ip;
@@ -305,7 +308,9 @@ export const SocketProvider = ({ children }) => {
   const createEmployeeInCatraca = async (employee) => {
     console.log("📥 Novo funcionário para criar na catraca:", employee);
     try {
-      const { diffPicture } = await api.post("/employees", employee);
+      const {
+        data: { diffPicture },
+      } = await api.post("/employees", employee);
 
       if (employee?.person?.picture && diffPicture) {
         const { data: settings } = await api.get("/settings");
