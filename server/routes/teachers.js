@@ -14,7 +14,18 @@ router.post("/", async (req, res) => {
     const repoTeacher = AppDataSource.getRepository("Teacher");
 
     const { workTimes, person, ...rest } = req?.body || {};
-    const payload = { ...rest, ...person };
+    const { address, ...restPerson } = person || {};
+    const payload = {
+      ...rest,
+      ...restPerson,
+      addressZipcode: address?.zipcode,
+      addressStreet: address?.street,
+      addressNumber: address?.number,
+      addressNeighborhood: address?.neighborhood,
+      addressComplement: address?.complement,
+      addressCity: address?.city,
+      addressState: address?.state,
+    };
 
     let teacher = await repoTeacher.findOneBy({
       id: payload.id,
@@ -60,7 +71,18 @@ router.put("/", async (req, res) => {
     }
 
     const { workTimes, person, ...rest } = req.body || {};
-    const payload = { ...rest, ...person };
+    const { address, ...restPerson } = person || {};
+    const payload = {
+      ...rest,
+      ...restPerson,
+      addressZipcode: address?.zipcode,
+      addressStreet: address?.street,
+      addressNumber: address?.number,
+      addressNeighborhood: address?.neighborhood,
+      addressComplement: address?.complement,
+      addressCity: address?.city,
+      addressState: address?.state,
+    };
 
     await repoTeacher.save(payload);
 
