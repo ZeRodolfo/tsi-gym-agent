@@ -267,7 +267,7 @@ export const SocketProvider = ({ children }) => {
         data: { diffPicture },
       } = await api.post("/teachers", teacher);
 
-      console.log("Diff", diffPicture);
+      console.log("📥 Professor com foto diferente:", diffPicture);
       if (teacher?.person?.picture && diffPicture) {
         const { data: settings } = await api.get("/settings");
         const ip = settings?.ip;
@@ -312,6 +312,7 @@ export const SocketProvider = ({ children }) => {
         data: { diffPicture },
       } = await api.post("/employees", employee);
 
+      console.log("📥 Funcionário com foto diferente:", diffPicture);
       if (employee?.person?.picture && diffPicture) {
         const { data: settings } = await api.get("/settings");
         const ip = settings?.ip;

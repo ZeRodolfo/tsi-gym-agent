@@ -55,17 +55,17 @@ router.post("/", async (req, res) => {
   const payload = {
     id,
     code,
-    name: student?.name,
+    name: student?.name || student?.person?.name,
     status,
     startDate,
     endDate,
     extendedAt,
     identifierCatraca,
-    picture,
+    picture: picture || student?.person?.picture,
     companyId,
     branchId,
     studentId: student?.id,
-    studentName: student?.name,
+    studentName: student?.name || student?.person?.name,
     birthdate: student?.person?.birthdate,
     addressZipcode: student?.person?.address?.zipcode,
     addressStreet: student?.person?.address?.street,
@@ -161,10 +161,13 @@ router.patch("/update-picture", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
+    logger.info("Excluindo matrícula", req?.params);
     const repo = AppDataSource.getRepository("Enrollment");
     await repo.delete({
       id: req?.params?.id,
     });
+
+    logger.info("Matrícula Excluida com sucesso", req?.params);
 
     return res.status(200).json({ message: "Excluída com sucesso." });
   } catch (err) {

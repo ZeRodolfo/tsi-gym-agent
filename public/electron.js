@@ -18,6 +18,7 @@ const { exec } = require("child_process");
 // const ThermalPrinter = require("node-thermal-printer");
 // const USB = require("escpos-usb");
 
+const { isPortInUse } = require("./utils/isPortInUse");
 const { Printer, Image } = require("@node-escpos/core");
 const USB = require("@node-escpos/usb-adapter");
 const {
@@ -42,10 +43,37 @@ const historicUserAccessPath = path.join(
   "historic_user_access.json"
 );
 
+const PORT = process.env.API_PORT || 4000;
+
 let mainWindow;
 let tray;
+let splashWindow;
 
-function createWindow() {
+// Desative logs e devtools em produção:
+// mainWindow.webContents.closeDevTools();
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    resizable: false,
+    show: false,
+  });
+
+  // mainWindow.loadURL(
+  //   app.isPackaged
+  //     ? `file://${path.join(__dirname, "index.html")}` // produção
+  //     : "http://localhost:3001" // dev
+  // );
+
+  splashWindow.loadURL(`file://${path.join(__dirname, "index.html")}`)
+  // splashWindow.loadFile(path.join(__dirname, "splash.html"));
+  splashWindow.once("ready-to-show", () => splashWindow.show());
+}
+
+function createMainWindow() {
   if (mainWindow) {
     mainWindow.show(); // já estava criada → só mostra
     return;
@@ -81,34 +109,96 @@ function createWindow() {
       : "http://localhost:3001" // dev
   );
 
+  // mostra só quando o conteúdo estiver pronto
+  mainWindow.once("ready-to-show", () => {
+    if (splashWindow) splashWindow.close();
+    splashWindow = null;
+    mainWindow.show();
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-  startServer(); // Inicia o mini servidor Node no mesmo app, verificar se a porta ou o servidor já esta de pé
-});
+function showApp() {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    createMainWindow();
+  }
+}
 
-app.on("ready", () => {
-  // cria tray
-  tray = new Tray(path.join(__dirname, "/logo.png"));
+function createTray() {
+  tray = new Tray(path.join(__dirname, "logo.png"));
   const contextMenu = Menu.buildFromTemplate([
-    {
-      label: "Abrir",
-      click: () => createWindow(),
-    },
-    {
-      label: "Sair",
-      click: () => app.quit(),
-    },
+    { label: "Abrir", click: () => showApp() },
+    { label: "Sair", click: () => app.quit() },
   ]);
 
   tray.setToolTip("TSI Gym Agent");
   tray.setContextMenu(contextMenu);
-  // 🔹 não abre janela automaticamente → só quando o usuário clicar
+  tray.on("click", () => showApp()); // abre com clique esquerdo
+}
+
+app.whenReady().then(async () => {
+  createTray();
+  createSplashWindow();
+  createMainWindow();
+
+  const portBusy = await isPortInUse(PORT);
+  if (portBusy) {
+    logger.info(
+      `⚠️ Servidor já está rodando na porta ${PORT}, não será iniciado novamente.`
+    );
+  } else {
+    logger.info(`🚀 Iniciando servidor local na porta ${PORT}...`);
+    startServer();
+  }
 });
+
+// app.whenReady().then(async () => {
+//   createWindow();
+
+//   const portBusy = await isPortInUse(PORT);
+//   if (portBusy) {
+//     logger.info(
+//       `⚠️ Servidor já está rodando na porta ${PORT}, não será iniciado novamente.`
+//     );
+//   } else {
+//     logger.info(`🚀 Iniciando servidor local na porta ${PORT}...`);
+//     startServer();
+//   }
+
+//   // startServer(); // Inicia o mini servidor Node no mesmo app, verificar se a porta ou o servidor já esta de pé
+// });
+
+
+// app.on("ready", () => {
+//   // cria tray
+//   tray = new Tray(path.join(__dirname, "/logo.png"));
+//   const contextMenu = Menu.buildFromTemplate([
+//     {
+//       label: "Abrir",
+//       click: () => showApp(),
+//     },
+//     {
+//       label: "Sair",
+//       click: () => app.quit(),
+//     },
+//   ]);
+
+//   tray.setToolTip("TSI Gym Agent");
+//   tray.setContextMenu(contextMenu);
+//   // 🔹 não abre janela automaticamente → só quando o usuário clicar
+
+//   // 🔹 Clique esquerdo → abre a janela direto
+//   tray.on("click", () => {
+//     showApp();
+//   });
+// });
 
 app.on("window-all-closed", (event) => {
   // if (process.platform !== "darwin") app.quit();

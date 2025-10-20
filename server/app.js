@@ -37,6 +37,8 @@ const routers = require("./routes");
 //   { flags: "a" }
 // );
 
+const PORT = process.env.API_PORT || 4000;
+
 function startServer() {
   logger.info(`HOST do servidor VPS: ${process.env.BASE_URL}`);
   AppDataSource.initialize()
@@ -181,8 +183,8 @@ function startServer() {
     return res.status(200).json({});
   });
 
-  server.listen(4000, () => {
-    logger.info("Servidor de acesso iniciado na porta 4000");
+  server.listen(PORT, () => {
+    logger.info(`Servidor de acesso iniciado na porta ${PORT}`);
   });
 }
 

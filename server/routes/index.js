@@ -1,5 +1,5 @@
 const express = require("express");
-const { startOfDay, isAfter, format } = require("date-fns");
+const { startOfDay, isAfter, format, isBefore } = require("date-fns");
 const catracaRoutes = require("./catraca"); // Importa as rotas
 const settingsRoutes = require("./settings"); // Importa as rotas
 const enrollmentsRoutes = require("./enrollments"); // Importa as rotas
@@ -500,6 +500,35 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       const isExpiredNormal = isAfter(today, endDateOnly); // endDateOnly?.getTime() < today?.getTime();
       const isExpiredExtended =
         extendedAtOnly && isAfter(today, extendedAtOnly); //extendedAtOnly?.getTime() < today?.getTime(); // expira só se passou do dia estendido
+
+      const startDateOnly = startOfDay(enrollment.startDate.replace("Z", ""));
+      const isBeforeStart = isBefore(today, startDateOnly);
+
+      if (isBeforeStart) {
+        const message = `Matrícula inicia ${format(
+          startDateOnly,
+          "dd/MM/yyyy"
+        )}`;
+        const historic = repoHistoric.create({
+          ...payloadHistoric,
+          status: "pending",
+          message,
+        });
+        await repoHistoric.save(historic);
+        io.emit("access", { ...historic, enrollment });
+
+        return res.json({
+          result: {
+            event: 6,
+            message,
+            user_id: userId,
+            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_image: user_has_image === "1",
+            portal_id: portalId,
+            actions: [],
+          },
+        });
+      }
 
       if (
         isExpiredExtended ||
