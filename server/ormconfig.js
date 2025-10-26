@@ -3,9 +3,11 @@ const sqlite3 = require("sqlite3"); // Importa explicitamente o módulo nativo
 const path = require("path");
 const { app } = require("electron");
 
+const { Person } = require("./entities/Person");
+const { Address } = require("./entities/Address");
 const { Enrollment } = require("./entities/Enrollment");
 const { Catraca } = require("./entities/Catraca");
-const { Settings } = require("./entities/Settings");
+const { Agent } = require("./entities/Agent");
 const { Historic } = require("./entities/Historic");
 const { Printer } = require("./entities/Printer");
 const { Company } = require("./entities/Company");
@@ -29,9 +31,11 @@ const AppDataSource = new DataSource({
   synchronize: true, // cria/atualiza tabelas automaticamente
   logging: false,
   entities: [
+    Person,
+    Address,
     Enrollment,
     Catraca,
-    Settings,
+    Agent,
     Historic,
     Printer,
     Company,

@@ -8,22 +8,8 @@ const Employee = new EntitySchema({
       type: "varchar",
       primary: true, // chave principal real
     },
-    identifierCatraca: {
-      type: "int",
-      nullable: false, // apenas normal
-    },
-    name: { type: "varchar" },
-    picture: { type: "varchar" },
-    birthdate: { type: "varchar", nullable: true },
-    addressZipcode: { type: "varchar", nullable: true },
-    addressStreet: { type: "varchar", nullable: true },
-    addressNumber: { type: "varchar", nullable: true },
-    addressNeighborhood: { type: "varchar", nullable: true },
-    addressComplement: { type: "varchar", nullable: true },
-    addressCity: { type: "varchar", nullable: true },
-    addressState: { type: "varchar", nullable: true },
-
-    companyId: { type: "varchar" },
+    personId: { type: "varchar" },
+    companyId: { type: "varchar", nullable: true },
     branchId: { type: "varchar" },
     createdAt: { type: "datetime", createDate: true },
     updatedAt: { type: "datetime", updateDate: true },
@@ -33,8 +19,14 @@ const Employee = new EntitySchema({
       type: "many-to-one",
       target: "Company",
       joinColumn: { name: "companyId" },
-      eager: true,
-      onDelete: "CASCADE",
+      // eager: true,
+      // nullable: true,
+      // onDelete: "SET NULL", // em vez de cascade, seta nulo
+    },
+    person: {
+      type: "one-to-one",
+      target: "Person",
+      inverseSide: "employee",
     },
     times: {
       type: "one-to-many",
@@ -50,7 +42,7 @@ const Employee = new EntitySchema({
   indices: [
     {
       name: "IDX_EMPLOYEE_ID",
-      columns: ["id", "identifierCatraca"],
+      columns: ["id"],
       unique: true, // combinação única
     },
   ],

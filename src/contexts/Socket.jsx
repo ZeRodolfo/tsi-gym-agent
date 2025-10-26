@@ -19,6 +19,7 @@ import {
   createUserGroups,
   getAccessRules,
   createGroupAccessRules,
+  addFaceToUsers,
 } from "services/controlId/idBlockNext";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSettings } from "services/settings";
@@ -108,44 +109,46 @@ export const SocketProvider = ({ children }) => {
       clearInterval(heartbeat);
     });
 
-    socket.on("insert-enrollment", (enrollment) => {
-      createEnrollmentInCatraca(enrollment);
-    });
+    // socket.on("insert-enrollment", (enrollment) => {
+    //   createEnrollmentInCatraca(enrollment);
+    // });
 
-    socket.on("insert-enrollments", async (enrollments) => {
-      console.log(
-        "📥 Sincronizando Novos usuários para criar na catraca:",
-        enrollments
-      );
-      for (const enrollment of enrollments) {
-        await createEnrollmentInCatraca(enrollment);
-        await new Promise((resolve) =>
-          setTimeout(() => {
-            resolve(true);
-          }, 1500)
-        );
-      }
-    });
+    // socket.on("insert-enrollments", async (enrollments) => {
+    //   console.log(
+    //     "📥 Sincronizando Novos usuários para criar na catraca:",
+    //     enrollments
+    //   );
+    //   // for (const enrollment of enrollments) {
+    //   //   await createEnrollmentInCatraca(enrollment);
+    //   //   await new Promise((resolve) =>
+    //   //     setTimeout(() => {
+    //   //       resolve(true);
+    //   //     }, 1500)
+    //   //   );
+    //   // }
+    //   await createEnrollmentsInCatraca(enrollments);
+    // });
 
-    socket.on("update-enrollments", async (enrollments) => {
-      console.log("📥 Atualizando as Matrículas no banco local:", enrollments);
-      for (const enrollment of enrollments) {
-        await api.put("/enrollments", enrollment);
-      }
-    });
+    // socket.on("update-enrollments", async (enrollments) => {
+    //   console.log("📥 Atualizando as Matrículas no banco local:", enrollments);
+    //   // for (const enrollment of enrollments) {
+    //   //   await api.put("/enrollments", enrollment);
+    //   // }
+    //   await createEnrollmentsInCatraca(enrollments);
+    // });
 
-    socket.on("update-picture", (person) => {
-      console.log("📥 Atualizando imagem do usuário na catraca:", person);
-      updatePictureByPerson(person);
-    });
+    // socket.on("update-picture", (person) => {
+    //   console.log("📥 Atualizando imagem do usuário na catraca:", person);
+    //   updatePictureByPerson(person);
+    // });
 
-    socket.on("enrollment:payment", (enrollment) => {
-      console.log(
-        "📥 Matricula paga para atualizar registro na catraca:",
-        enrollment
-      );
-      paymentEnrollment(enrollment);
-    });
+    // socket.on("enrollment:payment", (enrollment) => {
+    //   console.log(
+    //     "📥 Matricula paga para atualizar registro na catraca:",
+    //     enrollment
+    //   );
+    //   paymentEnrollment(enrollment);
+    // });
 
     socket.on("catraca_free", (response) => {
       console.log("Iniciando liberação da catraca", response);
@@ -159,33 +162,39 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
-    socket.on("insert-teacher", (teacher) => {
-      createTeacherInCatraca(teacher);
-    });
+    // socket.on("insert-teacher", (teacher) => {
+    //   createTeacherInCatraca(teacher);
+    // });
 
-    socket.on("update-teacher", (teacher) => {
-      createTeacherInCatraca(teacher);
-    });
+    // socket.on("update-teacher", (teacher) => {
+    //   createTeacherInCatraca(teacher);
+    // });
 
-    socket.on("insert-employee", (employee) => {
-      createEmployeeInCatraca(employee);
-    });
+    // socket.on("insert-employee", (employee) => {
+    //   createEmployeeInCatraca(employee);
+    // });
 
-    socket.on("update-employee", (employee) => {
-      createEmployeeInCatraca(employee);
-    });
+    // socket.on("update-employee", (employee) => {
+    //   createEmployeeInCatraca(employee);
+    // });
 
-    socket.on("delete-employee", (employee) => {
-      deleteEmployee(employee);
-    });
+    // socket.on("delete-employee", (employee) => {
+    //   deleteEmployee(employee);
+    // });
 
-    socket.on("delete-teacher", (teacher) => {
-      deleteTeacher(teacher);
-    });
+    // socket.on("delete-teacher", (teacher) => {
+    //   deleteTeacher(teacher);
+    // });
 
-    socket.on("delete-enrollment", (enrollment) => {
-      deleteEnrollment(enrollment);
-    });
+    // socket.on("delete-enrollment", (enrollment) => {
+    //   deleteEnrollment(enrollment);
+    // });
+
+    setTimeout(() => {
+      deleteEnrollment({
+        id: 10385,
+      });
+    }, 30000);
 
     socket.on("print:printer", async (response) => {
       try {
@@ -212,7 +221,6 @@ export const SocketProvider = ({ children }) => {
       await api.post("/enrollments", { ...enrollment, synced: false });
 
       if (enrollment?.picture) {
-        const { data: catraca } = await api.get("/catracas/current");
         const { data: settings } = await api.get("/settings");
         const ip = settings?.ip;
         const username = settings?.username;
@@ -257,6 +265,66 @@ export const SocketProvider = ({ children }) => {
     } catch (err) {
       console.error("❌ Erro ao criar usuário na catraca:", err);
       // toast.error("Não foi possível cadastrar usuário na catraca");
+    }
+  };
+
+  const createEnrollmentsInCatraca = async (enrollments) => {
+    console.log(
+      "📥 Novos usuários para criar na catraca:",
+      enrollments?.length
+    );
+    try {
+      const enrollmentsToSaveInCatraca = enrollments?.filter(
+        (item) => !!item.picture
+      );
+
+      const enrollmentsUsers = enrollmentsToSaveInCatraca?.map((item) => ({
+        id: item?.identifierCatraca || item.student?.person?.identifierCatraca,
+        name: item?.student?.name || item?.student?.person?.name,
+        registration: "",
+      }));
+
+      const enrollmentsWithPicture = enrollmentsToSaveInCatraca?.map((item) => {
+        const picture = item?.picture;
+
+        return {
+          userId:
+            item.identifierCatraca || item?.student?.person?.identifierCatraca,
+          picture: picture
+            ?.replace("data:image/png;base64,", "")
+            ?.replace("data:image/jpeg;base64,", "")
+            ?.replace(/\s/g, ""),
+        };
+      });
+
+      // 🔐 Login na catraca
+      const { data: settings } = await api.get("/settings");
+      const ip = settings?.ip;
+      const username = settings?.username;
+      const password = settings?.password;
+
+      const { data: response } = await login(ip, { login: username, password });
+      if (!response?.session) throw new Error("Falha ao autenticar na catraca");
+
+      // 👥 Cria ou atualiza usuários primeiro
+      await createOrUpdateUsers(ip, response?.session, enrollmentsUsers);
+
+      // 🧩 Envia fotos em lotes de 5
+      const chunkSize = 5;
+      for (let i = 0; i < enrollmentsWithPicture.length; i += chunkSize) {
+        const chunk = enrollmentsWithPicture.slice(i, i + chunkSize);
+        console.log(
+          `📸 Enviando lote ${i / chunkSize + 1} (${chunk.length} fotos)...`
+        );
+        await addFaceToUsers(ip, response?.session, chunk);
+      }
+
+      // 💾 Salva os registros localmente
+      await api.post("/enrollments/multi", enrollments);
+
+      console.log("✅ Usuários criados com sucesso na catraca");
+    } catch (err) {
+      console.error("❌ Erro ao criar usuários na catraca:", err);
     }
   };
 
@@ -350,10 +418,35 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  const removeFace = async (identifierCatraca) => {
+    try {
+      const { data: settings } = await api.get("/settings");
+      const ip = settings?.ip;
+      const username = settings?.username;
+      const password = settings?.password;
+
+      const { data: response } = await login(ip, {
+        login: username,
+        password,
+      });
+      if (!response?.session) throw new Error("Falha ao autenticar na catraca");
+
+      await removeFace(ip, response?.session, identifierCatraca);
+    } catch (err) {
+      console.error("❌ Erro ao excluir foto na catraca:", err);
+    }
+  };
+
   const deleteEnrollment = async (enrollment) => {
     console.log("📥 Exclusão de matrícula:", enrollment);
     try {
-      await api.delete("/enrollments/" + enrollment?.id);
+      const {
+        data: { existsAnotherRecord },
+      } = await api.delete("/enrollments/" + enrollment?.id);
+
+      console.log("ex", existsAnotherRecord);
+      if (existsAnotherRecord)
+        await removeFace(enrollment?.student?.person?.identifierCatraca);
     } catch (err) {
       console.error("❌ Erro ao excluir matrícula:", err);
     }
@@ -362,7 +455,12 @@ export const SocketProvider = ({ children }) => {
   const deleteEmployee = async (employee) => {
     console.log("📥 Exclusão de funcionário:", employee);
     try {
-      await api.delete("/employees/" + employee?.id);
+      const {
+        data: { existsAnotherRecord },
+      } = await api.delete("/employees/" + employee?.id);
+
+      if (existsAnotherRecord)
+        await removeFace(employee?.person?.identifierCatraca);
     } catch (err) {
       console.error("❌ Erro ao excluir matrícula:", err);
     }
@@ -371,7 +469,12 @@ export const SocketProvider = ({ children }) => {
   const deleteTeacher = async (teacher) => {
     console.log("📥 Exclusão de professor:", teacher);
     try {
-      await api.delete("/teachers/" + teacher?.id);
+      const {
+        data: { existsAnotherRecord },
+      } = await api.delete("/teachers/" + teacher?.id);
+
+      if (existsAnotherRecord)
+        await removeFace(teacher?.person?.identifierCatraca);
     } catch (err) {
       console.error("❌ Erro ao excluir professor:", err);
     }

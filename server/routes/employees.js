@@ -27,7 +27,9 @@ router.post("/", async (req, res) => {
       identifierCatraca: person?.identifierCatraca,
     });
 
+    let isNew = false;
     if (!employee) {
+      isNew = true;
       employee = repoEmployee.create(payload);
       await repoEmployee.save(employee);
       logger.info("Funcionário criado.");
@@ -44,8 +46,11 @@ router.post("/", async (req, res) => {
       logger.info("Horários atualizados.");
     }
 
+    let diffPicture = employee?.picture !== person?.picture;
+    if (isNew) diffPicture = true;
+
     return res.status(201).json({
-      diffPicture: employee?.picture !== person?.picture,
+      diffPicture,
       data: employee,
     });
   } catch (err) {
@@ -128,17 +133,40 @@ router.patch("/update-picture", async (req, res) => {
 // remover da catraca também depois
 router.delete("/:id", async (req, res) => {
   try {
-    const repo = AppDataSource.getRepository("Employee");
+    const repoEnrollment = AppDataSource.getRepository("Enrollment");
+    const repoTeacher = AppDataSource.getRepository("Teacher");
+    const repoEmployee = AppDataSource.getRepository("Employee");
     const repoWorkTime = AppDataSource.getRepository("WorkTime");
 
-    await repoWorkTime.delete({
-      employeeId: req?.params?.id,
+    let existsAnotherRecord = false;
+    const item = await repoEmployee.findOne({
+      where: { id: req?.params?.id },
     });
-    await repo.delete({
-      id: req?.params?.id,
-    });
+    if (item) {
+      const existsEnrollment = await repoEnrollment.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
+      const existsTeacher = await repoTeacher.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
 
-    return res.status(200).json({ message: "Excluída com sucesso." });
+      if (existsEnrollment || existsTeacher) existsAnotherRecord = true;
+
+      await repoWorkTime.delete({
+        employeeId: req?.params?.id,
+      });
+      await repoEmployee.delete({
+        id: req?.params?.id,
+      });
+    }
+
+    return res
+      .status(200)
+      .json({ existsAnotherRecord, message: "Excluída com sucesso." });
   } catch (err) {
     logger.error("Não foi possível excluir o funcionário", err);
     return res.status(400).json({ message: err?.message });

@@ -77,6 +77,18 @@ router.get("/", async (req, res) => {
         updatedAt,
       };
 
+      if (!payload?.picture?.trim()) {
+        logger.info(
+          `Matrícula de ID ${payload.id} para o aluno ${payload?.name} não possui foto`,
+          {
+            id: payload.id,
+            identifierCatraca: payload?.identifierCatraca,
+            name: payload.name,
+          }
+        );
+        continue;
+      }
+
       let enrollment = await repoEnrollment.findOneBy({
         id,
         identifierCatraca: student.person.identifierCatraca,
@@ -93,6 +105,7 @@ router.get("/", async (req, res) => {
       }
     }
 
+    const repoCompany = AppDataSource.getRepository("Company");
     const repoTeacher = AppDataSource.getRepository("Teacher");
     const repoWorkTime = AppDataSource.getRepository("WorkTime");
     await repoWorkTime.deleteAll();
@@ -101,6 +114,34 @@ router.get("/", async (req, res) => {
     for (const item of response?.teachers) {
       const { workTimes, person, ...rest } = item;
       const payload = { ...rest, ...person };
+
+      if (!payload?.picture?.trim()) {
+        logger.info(
+          `Professor de ID ${payload.id} de nome ${payload?.name} não possui foto`,
+          {
+            id: payload.id,
+            identifierCatraca: payload?.identifierCatraca,
+            name: payload.name,
+          }
+        );
+        continue;
+      }
+
+      if (payload?.companyId) {
+        let company = await repoCompany.findOne({
+          where: { id: payload?.companyId },
+        });
+
+        if (!company) {
+          company = repoCompany.create({
+            id: payload?.companyId,
+            name: "Tsi Tech Gym",
+            companyName: "Tsi Tech Gym",
+          });
+          await repoCompany.save(company);
+          logger.info("Placeholder de Company criado:", company);
+        }
+      }
 
       let teacher = await repoTeacher.findOneBy({
         id: payload.id,
@@ -131,6 +172,34 @@ router.get("/", async (req, res) => {
       const { workTimes, person, ...rest } = item;
       const payload = { ...rest, ...person };
 
+      if (!payload?.picture?.trim()) {
+        logger.info(
+          `Funcionário de ID ${payload.id} de nome ${payload?.name} não possui foto`,
+          {
+            id: payload.id,
+            identifierCatraca: payload?.identifierCatraca,
+            name: payload.name,
+          }
+        );
+        continue;
+      }
+
+      if (payload?.companyId) {
+        let company = await repoCompany.findOne({
+          where: { id: payload?.companyId },
+        });
+
+        if (!company) {
+          company = repoCompany.create({
+            id: payload?.companyId,
+            name: "Tsi Tech Gym",
+            companyName: "Tsi Tech Gym",
+          });
+          await repoCompany.save(company);
+          logger.info("Placeholder de Company criado:", company);
+        }
+      }
+
       let employee = await repoEmployee.findOneBy({
         id: payload.id,
         identifierCatraca: person?.identifierCatraca,
@@ -159,7 +228,12 @@ router.get("/", async (req, res) => {
       "Não foi possível salvar as matrículas no banco de dados.",
       err
     );
-    return res.status(400).json({ message: err?.response?.data?.message });
+    return res.status(400).json({
+      message:
+        err?.response?.data?.message ||
+        err?.message ||
+        "Não foi possível inserir o registro",
+    });
   }
 });
 
@@ -208,7 +282,7 @@ router.post("/", async (req, res) => {
 
     return res.status(201).json({ message: "Histórico enviado com sucesso." });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     // logger.error(
     //   "Histórico de acessos na catraca não foram sincronizados com o servidor VPS.",
     //   err

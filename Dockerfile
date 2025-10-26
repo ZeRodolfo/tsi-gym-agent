@@ -92,7 +92,7 @@ COPY . .
 RUN npm run build:react && npm run build:server
 
 # Instala dependências nativas do Electron
-RUN electron-builder install-app-deps
+# RUN electron-builder install-app-deps
 
 # Gera o .exe (Windows)
 CMD ["npm", "run", "electron:package:win"]

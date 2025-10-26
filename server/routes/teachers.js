@@ -32,7 +32,9 @@ router.post("/", async (req, res) => {
       identifierCatraca: person?.identifierCatraca,
     });
 
+    let isNew = false;
     if (!teacher) {
+      isNew = true;
       teacher = repoTeacher.create(payload);
       await repoTeacher.save(teacher);
       logger.info("Professor criado.");
@@ -49,8 +51,11 @@ router.post("/", async (req, res) => {
       logger.info("Horários atualizados.");
     }
 
+    let diffPicture = teacher?.picture !== person?.picture;
+    if (isNew) diffPicture = true;
+
     return res.status(201).json({
-      diffPicture: teacher?.picture !== person?.picture,
+      diffPicture,
       data: teacher,
     });
   } catch (err) {
@@ -132,17 +137,40 @@ router.patch("/update-picture", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const repo = AppDataSource.getRepository("Teacher");
+    const repoEnrollment = AppDataSource.getRepository("Enrollment");
+    const repoTeacher = AppDataSource.getRepository("Teacher");
+    const repoEmployee = AppDataSource.getRepository("Employee");
     const repoWorkTime = AppDataSource.getRepository("WorkTime");
 
-    await repoWorkTime.delete({
-      teacherId: req?.params?.id,
+    let existsAnotherRecord = false;
+    const item = await repoTeacher.findOne({
+      where: { id: req?.params?.id },
     });
-    await repo.delete({
-      id: req?.params?.id,
-    });
+    if (item) {
+      const existsEnrollment = await repoEnrollment.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
+      const existsEmployee = await repoEmployee.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
 
-    return res.status(200).json({ message: "Excluída com sucesso." });
+      if (existsEnrollment || existsEmployee) existsAnotherRecord = true;
+
+      await repoWorkTime.delete({
+        teacherId: req?.params?.id,
+      });
+      await repoTeacher.delete({
+        id: req?.params?.id,
+      });
+    }
+
+    return res
+      .status(200)
+      .json({ existsAnotherRecord, message: "Excluída com sucesso." });
   } catch (err) {
     logger.error("Não foi possível excluir o professor", err);
     return res.status(400).json({ message: err?.message });

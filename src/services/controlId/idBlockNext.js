@@ -4,7 +4,7 @@ import { Buffer } from "buffer";
 window.Buffer = Buffer;
 
 export const login = async (ip, { login, password }) => {
-  console.log("Tentativa de acesso: " + `http://${ip}/login.fcgi`,);
+  console.log("Tentativa de acesso: " + `http://${ip}/login.fcgi`);
 
   return await axios
     .post(
@@ -263,6 +263,37 @@ export async function addFace(ip, session, userId, base64Image) {
   return await axios.post(
     `http://${ip}/user_set_image.fcgi?user_id=${userId}&timestamp=${timestamp}&match=0&session=${session}`,
     buffer,
+    { headers: { "Content-Type": "application/octet-stream" } }
+  );
+}
+export async function addFaceToUsers(ip, session, userImages) {
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const user_images = userImages.map((item) => ({
+    user_id: item.userId,
+    timestamp,
+    image: item.picture, // já deve estar em base64 sem o prefixo data:image/*
+  }));
+
+  return await axios.post(
+    `http://${ip}/user_set_image_list.fcgi?session=${session}`,
+    {
+      match: false,
+      user_images,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 60000, // opcional: aumentar o tempo limite, já que envio de imagens pode ser lento
+    }
+  );
+}
+
+export async function removeFace(ip, session, userId) {
+  return await axios.post(
+    `http://${ip}/user_destroy_image.fcgi?session=${session}`,
+    { user_id: userId },
     { headers: { "Content-Type": "application/octet-stream" } }
   );
 }

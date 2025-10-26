@@ -8,21 +8,7 @@ const Teacher = new EntitySchema({
       type: "varchar",
       primary: true, // chave principal real
     },
-    identifierCatraca: {
-      type: "int",
-      nullable: false, // apenas normal
-    },
-    name: { type: "varchar" },
-    picture: { type: "varchar" },
-    birthdate: { type: "varchar", nullable: true },
-    addressZipcode: { type: "varchar", nullable: true },
-    addressStreet: { type: "varchar", nullable: true },
-    addressNumber: { type: "varchar", nullable: true },
-    addressNeighborhood: { type: "varchar", nullable: true },
-    addressComplement: { type: "varchar", nullable: true },
-    addressCity: { type: "varchar", nullable: true },
-    addressState: { type: "varchar", nullable: true },
-
+    personId: { type: "varchar" },
     companyId: { type: "varchar" },
     branchId: { type: "varchar" },
     createdAt: { type: "datetime", createDate: true },
@@ -36,12 +22,17 @@ const Teacher = new EntitySchema({
       eager: true,
       onDelete: "CASCADE",
     },
+    person: {
+      type: "one-to-one",
+      target: "Person",
+      inverseSide: "teacher",
+    },
     times: {
       type: "one-to-many",
       target: "WorkTime",
       inverseSide: "teacher",
     },
-     historics: {
+    historics: {
       type: "one-to-many",
       target: "Historic",
       inverseSide: "teacher",
@@ -50,7 +41,7 @@ const Teacher = new EntitySchema({
   indices: [
     {
       name: "IDX_TEACHER_ID",
-      columns: ["id", "identifierCatraca"],
+      columns: ["id"],
       unique: true, // combinação única
     },
   ],

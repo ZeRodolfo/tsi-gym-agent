@@ -1,6 +1,7 @@
 require("reflect-metadata");
 require("dotenv").config();
 
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 process.env.BASE_URL =
   process.env.NODE_ENV === "development"
     ? "http://localhost:4003"
@@ -60,8 +61,8 @@ function startServer() {
   });
 
   app.use(cors());
-  app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" })); // URL-encoded primeiro
-  app.use(express.json({ limit: "10mb" })); // JSON depois
+  app.use(bodyParser.urlencoded({ extended: true, limit: "150mb" })); // URL-encoded primeiro
+  app.use(express.json({ limit: "150mb" })); // JSON depois
   app.set("io", io); // 👉 Deixa o `io` acessível nas rotas
 
   // Eventos Socket.io
@@ -87,23 +88,30 @@ function startServer() {
   // });
 
   app.use((req, res, next) => {
-    const body = req.body;
+    // faz uma cópia superficial do body (para log)
+    const bodyForLog = JSON.parse(JSON.stringify(req.body || {}));
 
-    // remover a referencia para que a imagem seja enviada ainda
-    // if (body?.picture) delete body.picture;
-    // if (body?.person?.picture) delete body.person.picture;
-    // if (body?.student?.person?.picture) delete body.student.person.picture;
-    // if (body?.employee?.person?.picture) delete body.employee.person.picture;
-    // if (body?.teacher?.person?.picture) delete body.teacher.person.picture;
-    // if (body?.supplier?.person?.picture) delete body.supplier.person.picture;
+    // remove apenas no log, sem afetar o original
+    if (bodyForLog?.picture) delete bodyForLog.picture;
+    if (bodyForLog?.person?.picture) delete bodyForLog.person.picture;
+    if (bodyForLog?.student?.person?.picture)
+      delete bodyForLog.student.person.picture;
+    if (bodyForLog?.employee?.person?.picture)
+      delete bodyForLog.employee.person.picture;
+    if (bodyForLog?.teacher?.person?.picture)
+      delete bodyForLog.teacher.person.picture;
+    if (bodyForLog?.supplier?.person?.picture)
+      delete bodyForLog.supplier.person.picture;
 
-    // logger.info("Rota", {
-    //   method: req.method,
-    //   originalUrl: req.originalUrl,
-    //   body,
-    // });
+    logger.info("Rota", {
+      method: req.method,
+      originalUrl: req.originalUrl,
+      body: bodyForLog,
+    });
+
     next();
   });
+
   // Endpoint de saúde: a catraca fará GET aqui para verificar disponibilidade
   // app.get(['/session_is_valid.fcgi', '/device_is_alive.fcgi'], (req, res) => {
   //   res.sendStatus(200);

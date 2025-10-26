@@ -29,6 +29,7 @@ const Printer = new EntitySchema({
     partialCut: { type: "boolean", default: true },
     charEncoding: { type: "varchar", nullable: true },
 
+    agentId: { type: "varchar" },
     agentDeviceId: { type: "varchar" },
     departmentId: { type: "varchar" },
     companyId: { type: "varchar" },
@@ -48,12 +49,13 @@ const Printer = new EntitySchema({
       eager: true,
       onDelete: "CASCADE",
     },
-    settings: {
-      type: "one-to-one",
-      target: "Settings",
-      inverseSide: "printer", // ✅ sem joinColumns aqui
+    agent: {
+      type: "many-to-one",
+      target: "Agent",
+      joinColumn: { name: "agentId" },
+      eager: true,
       onDelete: "CASCADE",
-    },
+    }
   },
 });
 

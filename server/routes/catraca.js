@@ -81,4 +81,70 @@ router.post("/validate-tokens", async (req, res) => {
   }
 });
 
+router.post("/", async (req, res) => {
+  const {
+    type,
+    ip,
+    port,
+    username,
+    password,
+    ipLocal,
+    catraSideToEnter,
+    customAuthMessage,
+    customDenyMessage,
+    customNotIdentifiedMessage,
+    customMaskMessage,
+    enableCustomAuthMessage,
+    enableCustomDenyMessage,
+    enableCustomNotIdentifiedMessage,
+    enableCustomMaskMessage,
+  } = req.body || {};
+
+  const repoCatraca = AppDataSource.getRepository("Catraca");
+  const allCatraca = await repoCatraca.find();
+  const catraca = allCatraca?.[0];
+
+  const payload = {
+    type,
+    ip,
+    port,
+    username,
+    password,
+    customAuthMessage,
+    customDenyMessage,
+    customNotIdentifiedMessage,
+    customMaskMessage,
+    enableCustomAuthMessage,
+    enableCustomDenyMessage,
+    enableCustomNotIdentifiedMessage,
+    enableCustomMaskMessage,
+    ipLocal,
+    catraSideToEnter,
+    catracaId: catraca?.id || null,
+  };
+
+  try {
+    const repo = AppDataSource.getRepository("Settings");
+    const allSettings = await repo.find({
+      where: {
+        type: "catraca",
+      },
+    });
+    let settings = allSettings?.[0];
+
+    if (!settings) {
+      settings = repo.create(payload);
+      await repo.save(settings);
+    } else {
+      settings = { ...settings, ...payload };
+      await repo.save(settings);
+    }
+
+    return res.status(201).json(settings);
+  } catch (err) {
+    logger.error("error", err);
+    return res.status(400).json({ message: err?.response?.data?.message });
+  }
+});
+
 module.exports = router;

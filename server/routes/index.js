@@ -1,24 +1,15 @@
 const express = require("express");
 const { startOfDay, isAfter, format, isBefore } = require("date-fns");
 const catracaRoutes = require("./catraca"); // Importa as rotas
-const settingsRoutes = require("./settings"); // Importa as rotas
 const enrollmentsRoutes = require("./enrollments"); // Importa as rotas
 const historicsRoutes = require("./historics"); // Importa as rotas
 const syncRoutes = require("./sync"); // Importa as rotas
 const printersRoutes = require("./printers"); // Importa as rotas
 const teachersRoutes = require("./teachers"); // Importa as rotas
 const employeesRoutes = require("./employees"); // Importa as rotas
+const agentsRoutes = require("./agents"); // Importa as rotas
 const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger");
-
-function stripTime(date) {
-  if (typeof date === "string") {
-    const [year, month, day] = date?.split("-");
-    return new Date(year, month, day);
-  }
-
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
 
 const router = express.Router();
 
@@ -153,15 +144,49 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
   const event = parseInt(eventStr, 10);
   const portalId = parseInt(portalIdStr, 10);
 
+  const repoPerson = AppDataSource.getRepository("Person");
   const repoHistoric = AppDataSource.getRepository("Historic");
   const repoCatraca = AppDataSource.getRepository("Catraca");
-  const catracas = await repoCatraca.find();
+  const catracas = await repoCatraca.find(); // tentar buscar pelo ip da requisição?
   const catraca = catracas?.[0];
+
+  if (!catraca)
+    return res.json({
+      result: {
+        event: 6,
+        message: "Sem comunicação com o servidor local.",
+        user_name: "Usuário",
+        user_image: false,
+        user_id: userId,
+        portal_id: portalId,
+        actions: [],
+      },
+    });
+
+  const person = await repoPerson.findOne({
+    where: {
+      identifierCatraca: userId,
+    },
+    relations: [
+      "teacher",
+      "teacher.times",
+      "employee",
+      "employee.times",
+      "enrollments",
+    ],
+    order: {
+      enrollments: {
+        extendedAt: "DESC",
+        endDate: "DESC",
+        startDate: "DESC",
+      },
+    },
+  });
 
   try {
     logger.info("Dados do usuário na catraca", { userId, event, portalId });
 
-    if (userId === 0) {
+    if (userId === 0 || !person) {
       const message = "Matrícula não localizada.";
       logger.info("Usuário não encontrado na catraca", {
         userId,
@@ -171,19 +196,18 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         message,
       });
 
-      if (catraca) {
-        const historic = repoHistoric.create({
-          catraca: { id: catraca?.id },
-          companyId: catraca?.companyId,
-          branchId: catraca?.branchId,
-          type: "terminal",
-          attendedAt: new Date(),
-          status: "not_found",
-          message,
-        });
-        await repoHistoric.save(historic);
-        io.emit("access", { ...historic });
-      }
+      const historic = repoHistoric.create({
+        catraca: { id: catraca?.id },
+        companyId: catraca?.companyId,
+        branchId: catraca?.branchId,
+        personId: person?.id,
+        type: "terminal",
+        attendedAt: new Date(),
+        status: "not_found",
+        message,
+      });
+      await repoHistoric.save(historic);
+      io.emit("access", { ...historic });
 
       return res.json({
         result: {
@@ -200,22 +224,37 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       logger.info("Usuário passou na catraca", { userId, event, portalId });
     }
 
-    const repoTeacher = AppDataSource.getRepository("Teacher");
-    const repoEmployee = AppDataSource.getRepository("Employee");
+    const { name, teacher, employee, enrollments } = person;
+    const personName = name?.split(" ")?.[0];
+    console.log({ personName, employee, teacher, enrollments });
 
-    const teacher = await repoTeacher.findOne({
-      where: {
-        identifierCatraca: userId,
-      },
-      relations: ["times"],
-    });
+    if (!teacher && !employee && !enrollments?.length) {
+      const message = "Sincronizando informações. Aguarde!";
+      const historic = repoHistoric.create({
+        catraca: { id: catraca?.id },
+        companyId: catraca?.companyId,
+        branchId: catraca?.branchId,
+        type: "terminal",
+        attendedAt: new Date(),
+        status: "person_not_store",
+        message,
+        personId: person?.id,
+      });
+      await repoHistoric.save(historic);
+      io.emit("access", { ...historic });
 
-    const employee = await repoEmployee.findOne({
-      where: {
-        identifierCatraca: userId,
-      },
-      relations: ["times"],
-    });
+      return res.json({
+        result: {
+          event: 6,
+          message,
+          user_name: personName,
+          user_image: user_has_image === "1",
+          user_id: userId,
+          portal_id: portalId,
+          actions: [],
+        },
+      });
+    }
 
     const currentDate = new Date();
     // Pega o dia da semana atual (0=Dom, 1=Seg, ...)
@@ -244,49 +283,31 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       // Buscar usuário no seu sistema, verificar quando existir mais de uma matricula
       // fazer uma verificação caso o aluno já possua uma matrícula e solicitar uma atualização na atual
       // não deixar ter mais de uma matrícula ativa ao mesmo tempo, barrar no front principal
-      const repoEnrollment = AppDataSource.getRepository("Enrollment");
-      const enrollments = await repoEnrollment.find({
-        where: {
-          identifierCatraca: userId,
-        },
-        order: {
-          // updatedAt: "DESC",
-          // endDate: "DESC",
-          // extendedAt: "DESC",
-          extendedAt: "DESC",
-          endDate: "DESC",
-          startDate: "DESC",
-        },
-      });
-
       if (!enrollments?.length) {
         if (teacher || employee) {
           const message = teacher
             ? "Professor fora do horário"
             : "Funcionário fora do horário";
-          if (catraca) {
-            const historic = repoHistoric.create({
-              catraca: { id: catraca?.id },
-              companyId: catraca?.companyId,
-              branchId: catraca?.branchId,
-              type: "terminal",
-              attendedAt: new Date(),
-              status: "not_worktime",
-              message,
-              teacherId: teacher?.id,
-              employeeId: employee?.id,
-            });
-            await repoHistoric.save(historic);
-            io.emit("access", { ...historic });
-          }
+          const historic = repoHistoric.create({
+            catraca: { id: catraca?.id },
+            companyId: catraca?.companyId,
+            branchId: catraca?.branchId,
+            type: "terminal",
+            attendedAt: new Date(),
+            status: "not_worktime",
+            message,
+            teacherId: teacher?.id,
+            employeeId: employee?.id,
+            personId: person?.id,
+          });
+          await repoHistoric.save(historic);
+          io.emit("access", { ...historic });
 
           return res.json({
             result: {
               event: 6,
               message,
-              user_name:
-                teacher?.name?.split(" ")?.[0] ||
-                employee?.name?.split(" ")?.[0],
+              user_name: personName,
               user_image: user_has_image === "1",
               user_id: userId,
               portal_id: portalId,
@@ -296,25 +317,24 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         }
 
         const message = "Matrícula não localizada.";
-        if (catraca) {
-          const historic = repoHistoric.create({
-            catraca: { id: catraca?.id },
-            companyId: catraca?.companyId,
-            branchId: catraca?.branchId,
-            type: "terminal",
-            attendedAt: new Date(),
-            status: "not_found",
-            message,
-          });
-          await repoHistoric.save(historic);
-          io.emit("access", { ...historic });
-        }
+        const historic = repoHistoric.create({
+          catraca: { id: catraca?.id },
+          companyId: catraca?.companyId,
+          branchId: catraca?.branchId,
+          type: "terminal",
+          attendedAt: new Date(),
+          status: "not_found",
+          message,
+          personId: person?.id,
+        });
+        await repoHistoric.save(historic);
+        io.emit("access", { ...historic });
 
         return res.json({
           result: {
             event: 6,
             message: "Matrícula não localizada.",
-            user_name: "Usuário",
+            user_name: personName,
             user_image: user_has_image === "1",
             user_id: userId,
             portal_id: portalId,
@@ -322,13 +342,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
           },
         });
       }
-
-      // const filterActiveEnrollment = (enrollments) => {
-      //   console.log(enrollments);
-      //   if (enrollments.length === 1) return enrollments[0];
-
-      //   return enrollments.sort();
-      // };
 
       const sortEnrollments = (a, b) => {
         // Lógica de ordenação
@@ -339,8 +352,9 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
           pending_registration_release: 2,
           active: 3,
           locked: 4,
-          expired: 5,
-          canceled: 6,
+          scheduled_lock: 5,
+          expired: 6,
+          canceled: 7,
         };
 
         // 1. Priorize pelo status: matrículas ativas vêm primeiro
@@ -397,6 +411,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         type: "terminal",
         identifierCatraca,
         attendedAt: new Date(),
+        personId: person?.id,
       };
 
       if (enrollment?.status === "pending") {
@@ -414,7 +429,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -437,7 +452,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -460,7 +475,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -483,7 +498,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -522,7 +537,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -549,7 +564,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             event: 6,
             message,
             user_id: userId,
-            user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+            user_name: personName,
             user_image: user_has_image === "1",
             portal_id: portalId,
             actions: [],
@@ -561,9 +576,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       const historic = repoHistoric.create({
         ...payloadHistoric,
         status: "success",
-        message: `Bem-vindo, ${
-          userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0]
-        }!`,
+        message: `Bem-vindo, ${personName}!`,
       });
       await repoHistoric.save(historic);
 
@@ -571,25 +584,20 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
       // Se atingiu aqui, libera o acesso
       // verificar o sentido da catraca atraves da configuração
-
-      const repoSettings = AppDataSource.getRepository("Settings");
-      const allSettings = await repoSettings.find();
-      const settings = allSettings?.[0];
       const parameters =
-        settings?.catraSideToEnter === "0"
+        catraca?.catraSideToEnter === "0"
           ? "allow=clockwise"
           : "allow=anticlockwise";
+
       return res.json({
         result: {
           event: 7,
           user_id: userId,
-          user_name: userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0],
+          user_name: personName,
           user_image: user_has_image === "1",
           actions: [{ action: "catra", parameters }],
           portal_id: portalId,
-          message: `Bem-vindo, ${
-            userName?.split(" ")?.[0] || user?.name?.split(" ")?.[0]
-          }!`,
+          message: `Bem-vindo, ${personName}!`,
         },
       });
     } else {
@@ -598,13 +606,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         catraca: { id: catraca?.id },
         companyId: catraca?.companyId,
         branchId: catraca?.branchId,
+        personId: person?.id,
         type: "terminal",
         identifierCatraca: userId,
         attendedAt: new Date(),
         status: "success",
-        message: `Bem-vindo, ${
-          teacher?.name?.split(" ")?.[0] || employee?.name?.split(" ")?.[0]
-        }!`,
+        message: `Bem-vindo, ${personName}!`,
         teacherId: teacher?.id,
         employeeId: employee?.id,
       });
@@ -614,51 +621,43 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
       // Se atingiu aqui, libera o acesso
       // verificar o sentido da catraca atraves da configuração
-
-      const repoSettings = AppDataSource.getRepository("Settings");
-      const allSettings = await repoSettings.find();
-      const settings = allSettings?.[0];
       const parameters =
-        settings?.catraSideToEnter === "0"
+        catraca?.catraSideToEnter === "0"
           ? "allow=clockwise"
           : "allow=anticlockwise";
       return res.json({
         result: {
           event: 7,
           user_id: userId,
-          user_name:
-            teacher?.name?.split(" ")?.[0] || employee?.name?.split(" ")?.[0],
+          user_name: personName,
           user_image: user_has_image === "1",
           actions: [{ action: "catra", parameters }],
           portal_id: portalId,
-          message: `Bem-vindo, ${
-            teacher?.name?.split(" ")?.[0] || employee?.name?.split(" ")?.[0]
-          }!`,
+          message: `Bem-vindo, ${personName}!`,
         },
       });
     }
   } catch (err) {
     logger.error("Não foi possível liberar a catraca:", err);
     const message = "Matrícula não localizada.";
-    if (catraca) {
-      const historic = repoHistoric.create({
-        catraca: { id: catraca?.id },
-        companyId: catraca?.companyId,
-        branchId: catraca?.branchId,
-        type: "terminal",
-        attendedAt: new Date(),
-        status: "not_found",
-        message,
-      });
-      await repoHistoric.save(historic);
-      io.emit("access", { ...historic });
-    }
+    const historic = repoHistoric.create({
+      catraca: { id: catraca?.id },
+      companyId: catraca?.companyId,
+      branchId: catraca?.branchId,
+      personId: person?.id,
+      type: "terminal",
+      attendedAt: new Date(),
+      status: "not_found",
+      message,
+    });
+    await repoHistoric.save(historic);
+    io.emit("access", { ...historic });
 
     return res.json({
       result: {
         event: 6,
         message,
-        user_name: "Usuário",
+        user_name: person?.name || userName || "Usuário",
         user_image: false,
         user_id: userId,
         portal_id: portalId,
@@ -669,11 +668,11 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 });
 
 router.use("/catracas", catracaRoutes);
-router.use("/settings", settingsRoutes);
 router.use("/enrollments", enrollmentsRoutes);
 router.use("/historic", historicsRoutes);
 router.use("/sync", syncRoutes);
 router.use("/printers", printersRoutes);
 router.use("/teachers", teachersRoutes);
 router.use("/employees", employeesRoutes);
+router.use("/agents", agentsRoutes);
 module.exports = router;

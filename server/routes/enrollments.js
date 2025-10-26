@@ -20,11 +20,11 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:identifieCatraca", async (req, res) => {
+router.get("/:identifierCatraca", async (req, res) => {
   try {
     const repo = AppDataSource.getRepository("Enrollment");
     const enrollment = await repo.findOneBy({
-      identifieCatraca: req?.params?.identifieCatraca,
+      identifierCatraca: req?.params?.identifierCatraca,
     });
 
     return res.status(200).json(enrollment);
@@ -98,6 +98,90 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/multi", async (req, res) => {
+  const enrollments = req.body || [];
+  const saves = [];
+  for (const item of enrollments) {
+    const {
+      id,
+      status,
+      startDate,
+      endDate,
+      extendedAt,
+      identifierCatraca,
+      code,
+      picture,
+      student,
+      companyId,
+      branchId,
+      synced,
+      createdAt,
+      updatedAt,
+    } = item;
+    const payload = {
+      id,
+      code,
+      name: student?.name || student?.person?.name,
+      status,
+      startDate,
+      endDate,
+      extendedAt,
+      identifierCatraca,
+      picture: picture || student?.person?.picture,
+      companyId,
+      branchId,
+      studentId: student?.id,
+      studentName: student?.name || student?.person?.name,
+      birthdate: student?.person?.birthdate,
+      addressZipcode: student?.person?.address?.zipcode,
+      addressStreet: student?.person?.address?.street,
+      addressNumber: student?.person?.address?.number,
+      addressNeighborhood: student?.person?.address?.neighborhood,
+      addressComplement: student?.person?.address?.complement,
+      addressCity: student?.person?.address?.city,
+      addressState: student?.person?.address?.state,
+      synced,
+      createdAt,
+      updatedAt,
+    };
+
+    if (!payload?.picture?.trim()) {
+      logger.info(`Matrícula ${id} do aluno ${payload?.name} não possui foto`, {
+        id: payload.id,
+        identifierCatraca: payload?.identifierCatraca,
+        name: payload.name,
+      });
+      continue;
+    }
+
+    try {
+      const repo = AppDataSource.getRepository("Enrollment");
+      let enrollment = await repo.findOneBy({ id, identifierCatraca });
+
+      if (!enrollment) {
+        enrollment = repo.create(payload);
+        await repo.save(enrollment);
+      } else {
+        await repo.save({ ...enrollment, ...payload });
+      }
+      saves.push(enrollment);
+    } catch (err) {
+      logger.error("Não foi possível atualizar/cadastrar a matrícula", {
+        id,
+        identifierCatraca,
+        name: payload.name,
+        status,
+        startDate,
+        endDate,
+        extendedAt,
+        error: err,
+      });
+    }
+  }
+
+  return res.status(201).json(saves);
+});
+
 router.put("/", async (req, res) => {
   const { id, status, startDate, endDate, extendedAt, updatedAt } =
     req.body || {};
@@ -162,14 +246,38 @@ router.patch("/update-picture", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     logger.info("Excluindo matrícula", req?.params);
-    const repo = AppDataSource.getRepository("Enrollment");
-    await repo.delete({
-      id: req?.params?.id,
+    const repoEnrollment = AppDataSource.getRepository("Enrollment");
+    const repoTeacher = AppDataSource.getRepository("Teacher");
+    const repoEmployee = AppDataSource.getRepository("Employee");
+
+    let existsAnotherRecord = false;
+    const item = await repoEnrollment.findOne({
+      where: { id: req?.params?.id },
     });
+    if (item) {
+      const existsTeacher = await repoTeacher.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
+      const existsEmployee = await repoEmployee.findOne({
+        where: {
+          identifierCatraca: item.identifierCatraca,
+        },
+      });
+
+      if (existsTeacher || existsEmployee) existsAnotherRecord = true;
+
+      await repoEnrollment.delete({
+        id: req?.params?.id,
+      });
+    }
 
     logger.info("Matrícula Excluida com sucesso", req?.params);
 
-    return res.status(200).json({ message: "Excluída com sucesso." });
+    return res
+      .status(200)
+      .json({ existsAnotherRecord, message: "Excluída com sucesso." });
   } catch (err) {
     logger.error("Não foi possível excluir a matrícula", err);
     return res.status(400).json({ message: err?.message });
