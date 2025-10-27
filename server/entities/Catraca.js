@@ -15,12 +15,11 @@ const Catraca = new EntitySchema({
     departmentName: { type: "varchar" },
     modelType: { type: "varchar" },
     modelName: { type: "varchar" },
-    type: { type: "varchar" }, // catraca, printer
     ip: { type: "varchar", nullable: true },
-    port: { type: "int", nullable: true },
     username: { type: "varchar", nullable: true },
     password: { type: "varchar", nullable: true },
     ipLocal: { type: "varchar", nullable: true },
+    portLocal: { type: "int", nullable: true },
     catraSideToEnter: { type: "varchar", nullable: true },
     customAuthMessage: { type: "varchar", nullable: true },
     customDenyMessage: { type: "varchar", nullable: true },

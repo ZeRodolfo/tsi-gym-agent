@@ -40,7 +40,7 @@ import { api } from "services/api";
 import { FreeCatracaModal } from "components/FreeCatracaModal";
 import { ResetCatracaModal } from "components/ResetCatracaModal";
 import { useQueryClient } from "@tanstack/react-query";
-import { printerValidateTokens } from "services/settings";
+// import { printerValidateTokens } from "services/settings";
 
 const CATRACA_MODELS = {
   idblock_next: "ID Block Next",
@@ -50,7 +50,7 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
   const [type, setType] = useState(null);
 
   const queryClient = useQueryClient();
-  const { data: catraca, settings, setSettings } = useRevalidateToken();
+  const { catraca } = useRevalidateToken();
 
   const [isLoadingSave, setIsLoadingSave] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
@@ -78,14 +78,14 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
       setClientId("");
       setClientSecret("");
     } else {
-      setClientId(data?.printer?.clientId || "");
-      setClientSecret(data?.printer?.clientSecret || "");
+      setClientId(data?.clientId || "");
+      setClientSecret(data?.clientSecret || "");
 
       setType(data?.type || null);
       setIp(data?.ip || "");
       setIpLocal(data?.ipLocal || "");
       setSideToEnter(data?.catraSideToEnter || "0");
-      setPort(data?.port || 3000);
+      setPort(data?.portLocal || 4000);
       setUsername(data?.username || "tsitech");
       setPassword(data?.password || "admin");
       setTxtWelcome(data?.customAuthMessage || "Seja bem-vindo");
@@ -132,7 +132,7 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
     setupIDBlock({
       DEVICE_IP: ip,
       DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: `http://${ipLocal}:4000/api`,
+      WEBHOOK_URL: `http://${ipLocal}:${port}/api`,
       session,
       catra_side_to_enter: sideToEnter,
     })
@@ -165,21 +165,21 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
     console.log("Salvando dados da Catraca");
 
     // se já existir catraca, não deixar cadastrar uma nova
-    if (
-      settings?.type === type &&
-      type === "catraca" &&
-      ((data?.catraca?.id && data?.id !== settings?.id) ||
-        (!data?.id && settings?.id))
-    ) {
-      toast.error("Já existe uma catraca cadastrada.");
-      setIsLoadingSave(false);
-      return;
-    }
+    // if (
+    //   settings?.type === type &&
+    //   type === "catraca" &&
+    //   ((data?.catraca?.id && data?.id !== settings?.id) ||
+    //     (!data?.id && settings?.id))
+    // ) {
+    //   toast.error("Já existe uma catraca cadastrada.");
+    //   setIsLoadingSave(false);
+    //   return;
+    // }
 
     try {
       const payload = {
         ip,
-        port,
+        portLocal: port,
         username,
         password,
         customAuthMessage: txtWelcome,
@@ -195,7 +195,7 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
       };
 
       const { data: settingsData } = await api.post("/settings", payload);
-      setSettings(settingsData);
+      // setSettings(settingsData);
 
       queryClient.invalidateQueries({ queryKey: ["settings-all"] });
 
@@ -234,10 +234,10 @@ export default function RegisterCatracaConfigModal({ isOpen, data, onClose }) {
   const validateToken = async () => {
     try {
       const machineKey = await window.system.getMachineId();
-      const { data } = await printerValidateTokens({
-        clientId,
-        clientSecret,
-      });
+      // const { data } = await printerValidateTokens({
+      //   clientId,
+      //   clientSecret,
+      // });
 
       toast.success("Dados da Impressora importados com sucesso!");
       onClose();

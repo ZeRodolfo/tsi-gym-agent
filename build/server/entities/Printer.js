@@ -28,15 +28,10 @@ const Printer = new EntitySchema({
     autoCut: { type: "boolean", default: true },
     partialCut: { type: "boolean", default: true },
     charEncoding: { type: "varchar", nullable: true },
-
     agentDeviceId: { type: "varchar" },
     departmentId: { type: "varchar" },
     companyId: { type: "varchar" },
     branchId: { type: "varchar" },
-
-    createdByUserId: { type: "varchar" },
-    updatedByUserId: { type: "varchar" },
-
     createdAt: { type: "datetime", createDate: true },
     updatedAt: { type: "datetime", updateDate: true },
   },
@@ -48,12 +43,13 @@ const Printer = new EntitySchema({
       eager: true,
       onDelete: "CASCADE",
     },
-    settings: {
-      type: "one-to-one",
-      target: "Settings",
-      inverseSide: "printer", // ✅ sem joinColumns aqui
-      onDelete: "CASCADE",
-    },
+    agent: {
+      type: "many-to-one",
+      target: "Agent",
+      joinColumn: { name: "agentId" }, // ✅ define a FK corretamente
+      cascade: true,
+      onDelete: "SET NULL",
+    }
   },
 });
 

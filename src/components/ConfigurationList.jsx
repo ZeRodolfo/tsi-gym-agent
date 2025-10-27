@@ -27,7 +27,8 @@ import { Button } from "./ui/Button";
 import { GrEdit } from "react-icons/gr";
 import { MdDelete } from "react-icons/md";
 import RegisterCatracaConfigModal from "./RegisterCatracaConfigModal";
-import { fetchSettingsAll } from "services/settings";
+import { fetchCatracasAll } from "services/catracas";
+import { fetchPrintersAll } from "services/printers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FreeCatracaModal } from "./FreeCatracaModal";
 import { FaDoorOpen } from "react-icons/fa6";
@@ -78,19 +79,27 @@ export default function ConfigurationList() {
 
   const [settings, setSettings] = useState(null);
   const queryClient = useQueryClient();
-  const { data: configurations, isLoading } = useQuery({
-    queryKey: ["settings-all"],
-    queryFn: fetchSettingsAll,
+  const { data: catracas, isLoading: isLoadingCatraca } = useQuery({
+    queryKey: ["catracas-all"],
+    queryFn: fetchCatracasAll,
+    initialData: [], // opcional, começa vazio
+  });
+  const { data: printers, isLoading: isLoadingPrinter } = useQuery({
+    queryKey: ["printers-all"],
+    queryFn: fetchPrintersAll,
     initialData: [], // opcional, começa vazio
   });
 
   const data = {
-    data: configurations,
+    data: [
+      ...catracas?.map((item) => ({ ...item, type: "catraca" })),
+      ...printers?.map((item) => ({ ...item, type: "printer" })),
+    ],
     meta: {
-      total: configurations?.length || 0,
+      total: catracas?.length + printers?.length || 0,
       lastPage: 1,
       currentPage: 1,
-      perPage: configurations?.length || 0,
+      perPage: catracas?.length + printers?.length || 0,
       prev: 1,
       next: 1,
     },
@@ -163,14 +172,14 @@ export default function ConfigurationList() {
             </Button>
           )}
 
-          <Button
+          {/* <Button
             variant="ghost"
             size="icon"
             className="cursor-pointer"
             title="Excluir"
           >
             <MdDelete size={18} className="text-red-700" />
-          </Button>
+          </Button> */}
         </div>
       ),
       enableHiding: false,
@@ -282,7 +291,8 @@ export default function ConfigurationList() {
         isOpen={registerModalOpen}
         data={settings}
         onClose={() => {
-          queryClient.invalidateQueries({ queryKey: ["settings-all"] });
+          queryClient.invalidateQueries({ queryKey: ["catracas-all"] });
+          queryClient.invalidateQueries({ queryKey: ["printers-all"] });
           setRegisterModalOpen(false);
         }}
       />

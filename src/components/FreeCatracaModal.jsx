@@ -30,7 +30,7 @@ export const REASONS = [
   // },
 ];
 export const FreeCatracaModal = ({ isOpen, catraca, onClose }) => {
-  const { data, settings } = useRevalidateToken();
+  const { catraca: data } = useRevalidateToken();
 
   return (
     <AlertDialog open={isOpen}>
@@ -51,12 +51,7 @@ export const FreeCatracaModal = ({ isOpen, catraca, onClose }) => {
               key={reason.id}
               type="button"
               onClick={() =>
-                handleFreeCatracaConfirm(
-                  catraca || data,
-                  settings,
-                  reason,
-                  onClose
-                )
+                handleFreeCatracaConfirm(catraca || data, reason, onClose)
               }
               className="px-5 py-7 bg-primary hover:bg-primary-700 text-white rounded"
             >

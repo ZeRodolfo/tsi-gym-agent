@@ -1,8 +1,14 @@
 const cron = require("node-cron");
 const logger = require("../utils/logger");
 const syncJob = require("./syncJob");
+const syncPeopleJob = require("./syncPeopleJob");
+const syncTeachersJob = require("./syncTeachersJob");
+const syncEmployeesJob = require("./syncEmployeesJob");
 const syncEnrollmentsJob = require("./syncEnrollmentsJob");
 
+let isSyncPeopleJobRunning = false;
+let isSyncTeachersJobRunning = false;
+let isSyncEmployeesJobRunning = false;
 let isSyncJobRunning = false;
 let isSyncEnrollmentsRunning = false;
 
@@ -17,45 +23,112 @@ module.exports = () => {
   //   await syncEnrollmentsJob();
   // });
 
-  // Executa a cada 20 segundos
   cron.schedule("*/5 * * * * *", async () => {
-    if (isSyncJobRunning) {
+    if (isSyncPeopleJobRunning) {
       logger.warn(
-        "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
+        "⏩ Job de sincronização de pessoas pulado (execução anterior ainda em andamento)"
       );
       return;
     }
 
-    isSyncJobRunning = true;
-    logger.info("🚀 Iniciando job de sincronização...");
+    isSyncPeopleJobRunning = true;
+    logger.info("🚀 Iniciando job de sincronização de pessoas...");
     try {
-      await syncJob();
-      logger.info("✅ Job de sincronização finalizado com sucesso");
+      await syncPeopleJob();
+      logger.info("✅ Job de sincronização de pessoas finalizado com sucesso");
     } catch (err) {
-      logger.error("❌ Erro no job de sincronização:", err);
+      logger.error("❌ Erro no job de sincronização de pessoas:", err);
     } finally {
-      isSyncJobRunning = false;
+      isSyncPeopleJobRunning = false;
     }
   });
 
-  // Executa a cada 60 segundos também (ajuste se quiser outro intervalo)
-  cron.schedule("*/60 * * * * *", async () => {
+  cron.schedule("*/5 * * * * *", async () => {
+    if (isSyncTeachersJobRunning) {
+      logger.warn(
+        "⏩ Job de sincronização de professores pulado (execução anterior ainda em andamento)"
+      );
+      return;
+    }
+
+    isSyncTeachersJobRunning = true;
+    logger.info("🚀 Iniciando job de sincronização de professores...");
+    try {
+      await syncTeachersJob();
+      logger.info(
+        "✅ Job de sincronização de professores finalizado com sucesso"
+      );
+    } catch (err) {
+      logger.error("❌ Erro no job de sincronização de professores:", err);
+    } finally {
+      isSyncTeachersJobRunning = false;
+    }
+  });
+
+  cron.schedule("*/5 * * * * *", async () => {
+    if (isSyncEmployeesJobRunning) {
+      logger.warn(
+        "⏩ Job de sincronização de professores pulado (execução anterior ainda em andamento)"
+      );
+      return;
+    }
+
+    isSyncEmployeesJobRunning = true;
+    logger.info("🚀 Iniciando job de sincronização de funcionários...");
+    try {
+      await syncEmployeesJob();
+      logger.info(
+        "✅ Job de sincronização de funcionários finalizado com sucesso"
+      );
+    } catch (err) {
+      logger.error("❌ Erro no job de sincronização de funcionários:", err);
+    } finally {
+      isSyncEmployeesJobRunning = false;
+    }
+  });
+
+  cron.schedule("*/5 * * * * *", async () => {
     if (isSyncEnrollmentsRunning) {
       logger.warn(
-        "⏩ Job de syncEnrollments pulado (execução anterior ainda em andamento)"
+        "⏩ Job de sincronização de matrículas pulado (execução anterior ainda em andamento)"
       );
       return;
     }
 
     isSyncEnrollmentsRunning = true;
-    logger.info("🚀 Iniciando syncEnrollmentsJob...");
+    logger.info("🚀 Iniciando job de sincronização de matrículas...");
     try {
       await syncEnrollmentsJob();
-      logger.info("✅ syncEnrollmentsJob finalizado com sucesso");
+      logger.info(
+        "✅ Job de sincronização de matrículas finalizado com sucesso"
+      );
     } catch (err) {
-      logger.error("❌ Erro no syncEnrollmentsJob:", err);
+      logger.error("❌ Erro no job de sincronização de matrículas:", err);
     } finally {
       isSyncEnrollmentsRunning = false;
     }
   });
+
+  // Executa a cada 20 segundos
+  // cron.schedule("*/60 * * * * *", async () => {
+  //   if (isSyncJobRunning) {
+  //     logger.warn(
+  //       "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
+  //     );
+  //     return;
+  //   }
+
+  //   isSyncJobRunning = true;
+  //   logger.info("🚀 Iniciando job de sincronização...");
+  //   try {
+  //     await syncJob();
+  //     logger.info("✅ Job de sincronização finalizado com sucesso");
+  //   } catch (err) {
+  //     logger.error("❌ Erro no job de sincronização:", err);
+  //   } finally {
+  //     isSyncJobRunning = false;
+  //   }
+  // });
+
+  // // Executa a cada 60 segundos também (ajuste se quiser outro intervalo)
 };

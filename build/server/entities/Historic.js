@@ -9,6 +9,10 @@ const Historic = new EntitySchema({
       type: "int",
       generated: true,
     },
+    personId: {
+      type: "varchar",
+      nullable: true,
+    },
     studentId: {
       type: "varchar",
       nullable: true,
@@ -67,6 +71,18 @@ const Historic = new EntitySchema({
     },
   },
   relations: {
+    person: {
+      type: "many-to-one",
+      target: "Person",
+      joinColumns: [
+        {
+          name: "personId",
+          referencedColumnName: "id",
+        },
+      ],
+      inverseSide: "historics",
+      onDelete: "CASCADE",
+    },
     enrollment: {
       type: "many-to-one",
       target: "Enrollment",
@@ -103,10 +119,6 @@ const Historic = new EntitySchema({
           name: "employeeId",
           referencedColumnName: "id",
         },
-        // {
-        //   name: "identifierCatraca",
-        //   referencedColumnName: "identifierCatraca",
-        // },
       ],
       inverseSide: "historics",
       onDelete: "CASCADE",
@@ -119,10 +131,6 @@ const Historic = new EntitySchema({
           name: "teacherId",
           referencedColumnName: "id",
         },
-        // {
-        //   name: "identifierCatraca",
-        //   referencedColumnName: "identifierCatraca",
-        // },
       ],
       inverseSide: "historics",
       onDelete: "CASCADE",

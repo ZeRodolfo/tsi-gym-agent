@@ -23,6 +23,11 @@ const Address = new EntitySchema({
     },
   },
   relations: {
+    company: {
+      type: "one-to-one",
+      target: "Company",
+      inverseSide: "address",
+    },
     person: {
       type: "one-to-one",
       target: "Person",

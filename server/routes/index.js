@@ -226,7 +226,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
     const { name, teacher, employee, enrollments } = person;
     const personName = name?.split(" ")?.[0];
-    console.log({ personName, employee, teacher, enrollments });
 
     if (!teacher && !employee && !enrollments?.length) {
       const message = "Sincronizando informações. Aguarde!";

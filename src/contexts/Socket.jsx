@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "services/api";
+import { getCatraca } from "services/catracas";
 import { io } from "socket.io-client";
 // import { toast } from "sonner";
 import {
@@ -22,7 +23,6 @@ import {
   addFaceToUsers,
 } from "services/controlId/idBlockNext";
 import { useQuery } from "@tanstack/react-query";
-import { fetchSettings } from "services/settings";
 import { handleFreeCatracaConfirm } from "utils/freeCatraca";
 import { toast } from "react-toastify";
 
@@ -30,56 +30,56 @@ const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const { data: settings } = useQuery({
-    queryKey: ["settings"],
-    queryFn: fetchSettings,
+  const { data: catraca } = useQuery({
+    queryKey: ["catraca-default"],
+    queryFn: getCatraca,
     initialData: null, // opcional, começa vazio
   });
 
-  let heartbeat;
+  // let heartbeat;
 
-  useEffect(() => {
-    // envia heartbeat a cada 20s
-    heartbeat = setInterval(async () => {
-      if (!socket || !settings) return null;
+  // useEffect(() => {
+  //   // envia heartbeat a cada 20s
+  //   heartbeat = setInterval(async () => {
+  //     if (!socket) return null;
 
-      try {
-        const ip = settings?.ip;
-        const username = settings?.username;
-        const password = settings?.password;
-        const { data: response } = await login(ip, {
-          login: username,
-          password,
-        });
-        if (!response?.session)
-          throw new Error("Falha ao autenticar na catraca");
+  //     try {
+  //       const ip = settings?.ip;
+  //       const username = settings?.username;
+  //       const password = settings?.password;
+  //       const { data: response } = await login(ip, {
+  //         login: username,
+  //         password,
+  //       });
+  //       if (!response?.session)
+  //         throw new Error("Falha ao autenticar na catraca");
 
-        socket.emit("status", {
-          timestamp: new Date().toISOString(),
-          agent: {
-            online: true,
-          },
-          machine: {
-            online: true,
-          },
-        });
-      } catch (err) {
-        socket.emit("status", {
-          timestamp: new Date().toISOString(),
-          agent: {
-            online: true,
-          },
-          machine: {
-            online: false,
-          },
-        });
-      }
-    }, 20000);
+  //       socket.emit("status", {
+  //         timestamp: new Date().toISOString(),
+  //         agent: {
+  //           online: true,
+  //         },
+  //         machine: {
+  //           online: true,
+  //         },
+  //       });
+  //     } catch (err) {
+  //       socket.emit("status", {
+  //         timestamp: new Date().toISOString(),
+  //         agent: {
+  //           online: true,
+  //         },
+  //         machine: {
+  //           online: false,
+  //         },
+  //       });
+  //     }
+  //   }, 20000);
 
-    return () => {
-      clearInterval(heartbeat);
-    };
-  }, [socket, settings]);
+  //   return () => {
+  //     clearInterval(heartbeat);
+  //   };
+  // }, [socket, settings]);
 
   // 🔹 Inicia socket de comunicação
   const initSocket = async (data) => {
@@ -221,10 +221,10 @@ export const SocketProvider = ({ children }) => {
       await api.post("/enrollments", { ...enrollment, synced: false });
 
       if (enrollment?.picture) {
-        const { data: settings } = await api.get("/settings");
-        const ip = settings?.ip;
-        const username = settings?.username;
-        const password = settings?.password;
+        // const { data: settings } = await api.get("/settings");
+        const ip = catraca?.ip;
+        const username = catraca?.username;
+        const password = catraca?.password;
 
         const { data: response } = await login(ip, {
           login: username,
@@ -298,10 +298,9 @@ export const SocketProvider = ({ children }) => {
       });
 
       // 🔐 Login na catraca
-      const { data: settings } = await api.get("/settings");
-      const ip = settings?.ip;
-      const username = settings?.username;
-      const password = settings?.password;
+      const ip = catraca?.ip;
+      const username = catraca?.username;
+      const password = catraca?.password;
 
       const { data: response } = await login(ip, { login: username, password });
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
@@ -337,10 +336,10 @@ export const SocketProvider = ({ children }) => {
 
       console.log("📥 Professor com foto diferente:", diffPicture);
       if (teacher?.person?.picture && diffPicture) {
-        const { data: settings } = await api.get("/settings");
-        const ip = settings?.ip;
-        const username = settings?.username;
-        const password = settings?.password;
+        // const { data: settings } = await api.get("/settings");
+        const ip = catraca?.ip;
+        const username = catraca?.username;
+        const password = catraca?.password;
 
         const { data: response } = await login(ip, {
           login: username,
@@ -382,10 +381,10 @@ export const SocketProvider = ({ children }) => {
 
       console.log("📥 Funcionário com foto diferente:", diffPicture);
       if (employee?.person?.picture && diffPicture) {
-        const { data: settings } = await api.get("/settings");
-        const ip = settings?.ip;
-        const username = settings?.username;
-        const password = settings?.password;
+        // const { data: settings } = await api.get("/settings");
+        const ip = catraca?.ip;
+        const username = catraca?.username;
+        const password = catraca?.password;
 
         const { data: response } = await login(ip, {
           login: username,
@@ -420,10 +419,10 @@ export const SocketProvider = ({ children }) => {
 
   const removeFace = async (identifierCatraca) => {
     try {
-      const { data: settings } = await api.get("/settings");
-      const ip = settings?.ip;
-      const username = settings?.username;
-      const password = settings?.password;
+      // const { data: settings } = await api.get("/settings");
+      const ip = catraca?.ip;
+      const username = catraca?.username;
+      const password = catraca?.password;
 
       const { data: response } = await login(ip, {
         login: username,
@@ -503,10 +502,10 @@ export const SocketProvider = ({ children }) => {
       }
 
       const enrollment = enrollments[0];
-      const { data: settings } = await api.get("/settings");
-      const ip = settings?.ip;
-      const username = settings?.username;
-      const password = settings?.password;
+      // const { data: settings } = await api.get("/settings");
+      const ip = catraca?.ip;
+      const username = catraca?.username;
+      const password = catraca?.password;
 
       const { data: response } = await login(ip, { login: username, password });
       if (!response?.session) throw new Error("Falha ao autenticar na catraca");
@@ -536,14 +535,12 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     const bootstrap = async () => {
-      const { data } = await api.get("/catracas/current");
+      const { data } = await api.get("/catracas");
       // const data = await window.api.getTokenData();
-      if (data?.id) {
-        initSocket(data);
-      }
+      if (data?.id) initSocket(data);
     };
-    if (settings) bootstrap();
-  }, [settings]);
+    if (catraca) bootstrap();
+  }, [catraca]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

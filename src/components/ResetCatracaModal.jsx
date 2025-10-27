@@ -15,7 +15,7 @@ import { handleFreeCatracaConfirm } from "utils/freeCatraca";
 import { login, resetToFactoryDefault } from "services/controlId/idBlockNext";
 
 export const ResetCatracaModal = ({ isOpen, onClose }) => {
-  const { data, settings } = useRevalidateToken();
+  const { catraca } = useRevalidateToken();
 
   const handleReset = async () => {
     if (!settings?.id)

@@ -28,7 +28,7 @@ export const SocketLocalProvider = ({ children }) => {
 
   useEffect(() => {
     const bootstrap = async () => {
-      const { data } = await api.get("/catracas/current");
+      const { data } = await api.get("/catracas");
       if (data?.id) initSocket(data);
     };
     bootstrap();

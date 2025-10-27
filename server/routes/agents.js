@@ -12,9 +12,11 @@ const api = axios.create({
 router.get("/", async (req, res) => {
   try {
     const repo = AppDataSource.getRepository("Agent");
-    const agent = await repo.findOne();
+    const agents = await repo.find({
+      relations: ["company", "company.address"],
+    });
 
-    return res.status(200).json(agent);
+    return res.status(200).json(agents?.[0]);
   } catch (err) {
     logger.error("error", err);
     return res
@@ -33,9 +35,26 @@ router.post("/validate-tokens", async (req, res) => {
       clientSecret,
     });
 
-    logger.info(`Get data:`, data);
-
     if (data) {
+      const companyRepo = AppDataSource.getRepository("Company");
+      let company = await companyRepo.findOne({
+        where: {
+          id: data?.companyId,
+        },
+        relations: ["address"],
+      });
+
+      if (data?.company) {
+        const { address, ...companyData } = data?.company;
+        if (!company) {
+          company = companyRepo.create({ ...companyData, address });
+          await companyRepo.save(company);
+        } else {
+          company = { ...company, ...companyData, address };
+          await companyRepo.save(company);
+        }
+      }
+
       const repo = AppDataSource.getRepository("Agent");
       let agent = await repo.findOneBy({ id: data?.id });
 
@@ -45,16 +64,8 @@ router.post("/validate-tokens", async (req, res) => {
           name: data?.name,
           note: data?.note,
           machineId: machineKey,
-          departmentName: data?.department?.name,
-          modelType: data?.model?.type,
-          modelName: data?.model?.name,
           companyId: data?.company?.id,
-          companyName: data?.company?.name || data?.company?.companyName,
           branchId: data?.branch?.id,
-          branchName:
-            data?.branch?.name ||
-            data?.company?.name ||
-            data?.company?.companyName,
           clientId,
           clientSecret,
           lastSync: new Date(),
@@ -63,7 +74,77 @@ router.post("/validate-tokens", async (req, res) => {
 
       await repo.save(agent);
 
-      logger.info(`Agente data:`, agent);
+      const repoCatraca = AppDataSource.getRepository("Catraca");
+      const repoPrinter = AppDataSource.getRepository("Printer");
+
+      await repoCatraca.deleteAll();
+      await repoPrinter.deleteAll();
+
+      for (const device of data?.devices) {
+        if (device.type === "catraca") {
+          for (const item of device.catracas) {
+            const payload = {
+              id: item.id,
+              name: item.name,
+              note: item.note,
+              departmentName: item?.department?.name,
+              modelType: item?.model?.type,
+              modelName: item?.model?.name,
+              clientId: item.clientId,
+              clientSecret: item.clientSecret,
+              ip: item.ip,
+              username: item.username,
+              password: item.password,
+              customAuthMessage: item.customAuthMessage,
+              customDenyMessage: item.customDenyMessage,
+              customNotIdentifiedMessage: item.customNotIdentifiedMessage,
+              customMaskMessage: item.customMaskMessage,
+              enableCustomAuthMessage: item.enableCustomAuthMessage,
+              enableCustomDenyMessage: item.enableCustomDenyMessage,
+              enableCustomNotIdentifiedMessage:
+                item.enableCustomNotIdentifiedMessage,
+              enableCustomMaskMessage: item.enableCustomMaskMessage,
+              ipLocal: item.ipLocal,
+              portLocal: item.portLocal,
+              catraSideToEnter: item.catraSideToEnter,
+              catracaId: item?.id || null,
+              companyId: item.companyId,
+              branchId: item.branchId,
+            };
+
+            catraca = repoCatraca.create(payload);
+            await repoCatraca.save(catraca);
+          }
+        } else {
+          for (const item of device.printers) {
+            const payload = {
+              id: item.id,
+              name: item.name,
+              note: item.note,
+              active: item.active,
+              type: item.type,
+              clientId: item.clientId,
+              clientSecret: item.clientSecret,
+              paperWidth: item.paperWidth,
+              autoCut: item.autoCut,
+              partialCut: item.partialCut,
+              charEncoding: item.charEncoding,
+              departmentId: item?.departmentId,
+              agentDeviceId: item?.agentDeviceId,
+              agentId: device.id,
+              ipAddress: item.ipAddress,
+              port: item.port,
+              connectionType: item.connectionType,
+              interface: item?.interface,
+              companyId: item.companyId,
+              branchId: item.branchId,
+            };
+
+            printer = repoPrinter.create(payload);
+            await repoPrinter.save(printer);
+          }
+        }
+      }
 
       return res.status(201).json(agent);
     }

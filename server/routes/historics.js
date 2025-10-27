@@ -14,7 +14,13 @@ router.get("/", async (req, res) => {
     const historics = await repo.find({
       order: { attendedAt: "desc" },
       take: 25,
-      relations: ["enrollment", "teacher", "employee"],
+      relations: [
+        "person",
+        "person.address",
+        "enrollment",
+        "teacher",
+        "employee",
+      ],
     });
 
     return res.status(200).json(historics);
@@ -28,7 +34,13 @@ router.get("/last-access", async (req, res) => {
   try {
     const repo = AppDataSource.getRepository("Historic");
     const historics = await repo.find({
-      relations: ["enrollment", "teacher", "employee"],
+      relations: [
+        "person",
+        "person.address",
+        "enrollment",
+        "teacher",
+        "employee",
+      ],
       order: { attendedAt: "desc" },
       take: 1,
     });
@@ -42,6 +54,7 @@ router.get("/last-access", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const {
+    personId,
     studentId,
     enrollmentId,
     identifierCatraca,
@@ -56,6 +69,7 @@ router.post("/", async (req, res) => {
   } = req.body || {};
 
   const payload = {
+    personId,
     studentId,
     enrollment: { id: enrollmentId, identifierCatraca }, // cria vínculo via FK
     catraca: { id: catracaId },

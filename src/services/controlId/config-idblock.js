@@ -117,6 +117,7 @@ export default async function main(payload = {}) {
   }
 }
 
+// deprecated
 async function configure(DEVICE) {
   const AUTH = {
     username: "admin",

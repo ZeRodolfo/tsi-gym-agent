@@ -1,5 +1,7 @@
 const express = require("express");
 const axios = require("axios");
+const { Not, IsNull } = require("typeorm");
+
 const router = express.Router();
 const { AppDataSource } = require("../ormconfig");
 // const { Catraca } = require("../entities/Catraca");
@@ -9,12 +11,30 @@ const api = axios.create({
   baseURL: process.env.BASE_URL || "http://localhost:4003",
 });
 
-router.get("/current", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const repo = AppDataSource.getRepository("Catraca");
-    const catracas = await repo.find();
+    const catraca = await repo.findOne({
+      where: {
+        ip: Not(IsNull()),
+      },
+    });
 
-    return res.status(200).json(catracas?.[0] || null);
+    return res.status(200).json(catraca);
+  } catch (err) {
+    logger.error("error", err);
+    return res.status(400).json({ message: err?.response?.data?.message });
+  }
+});
+
+router.get("/all", async (req, res) => {
+  try {
+    const repo = AppDataSource.getRepository("Catraca");
+    const catracas = await repo.find({
+      relations: ["company"],
+    });
+
+    return res.status(200).json(catracas);
   } catch (err) {
     logger.error("error", err);
     return res.status(400).json({ message: err?.response?.data?.message });
@@ -78,6 +98,72 @@ router.post("/validate-tokens", async (req, res) => {
       message: err?.response?.data?.message,
       host: process.env.BASE_URL,
     });
+  }
+});
+
+router.post("/", async (req, res) => {
+  const {
+    type,
+    ip,
+    port,
+    username,
+    password,
+    ipLocal,
+    catraSideToEnter,
+    customAuthMessage,
+    customDenyMessage,
+    customNotIdentifiedMessage,
+    customMaskMessage,
+    enableCustomAuthMessage,
+    enableCustomDenyMessage,
+    enableCustomNotIdentifiedMessage,
+    enableCustomMaskMessage,
+  } = req.body || {};
+
+  const repoCatraca = AppDataSource.getRepository("Catraca");
+  const allCatraca = await repoCatraca.find();
+  const catraca = allCatraca?.[0];
+
+  const payload = {
+    type,
+    ip,
+    port,
+    username,
+    password,
+    customAuthMessage,
+    customDenyMessage,
+    customNotIdentifiedMessage,
+    customMaskMessage,
+    enableCustomAuthMessage,
+    enableCustomDenyMessage,
+    enableCustomNotIdentifiedMessage,
+    enableCustomMaskMessage,
+    ipLocal,
+    catraSideToEnter,
+    catracaId: catraca?.id || null,
+  };
+
+  try {
+    const repo = AppDataSource.getRepository("Settings");
+    const allSettings = await repo.find({
+      where: {
+        type: "catraca",
+      },
+    });
+    let settings = allSettings?.[0];
+
+    if (!settings) {
+      settings = repo.create(payload);
+      await repo.save(settings);
+    } else {
+      settings = { ...settings, ...payload };
+      await repo.save(settings);
+    }
+
+    return res.status(201).json(settings);
+  } catch (err) {
+    logger.error("error", err);
+    return res.status(400).json({ message: err?.response?.data?.message });
   }
 });
 

@@ -30,5 +30,21 @@ export const checkTokens = async (
 };
 
 export const getCatraca = async () => {
-  return await api.get("/catracas/current");
+  try {
+    const { data } = await api.get("/catracas");
+    return data;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
 };
+
+export async function fetchCatracasAll() {
+  try {
+    const { data } = await api.get("/catracas/all");
+    return data;
+  } catch (err) {
+    console.log(err);
+    throw err;
+  }
+}

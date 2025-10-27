@@ -26,6 +26,7 @@ const Teacher = new EntitySchema({
       type: "one-to-one",
       target: "Person",
       inverseSide: "teacher",
+      joinColumn: { name: "personId" },
     },
     times: {
       type: "one-to-many",

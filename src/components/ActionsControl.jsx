@@ -5,7 +5,7 @@ import { REASONS } from "./FreeCatracaModal";
 import { Collapse } from "./ui/Collapse";
 
 export const ActionsControl = () => {
-  const { data, settings } = useRevalidateToken();
+  const { catraca: data } = useRevalidateToken();
 
   return (
     <section className="px-3">
@@ -23,7 +23,7 @@ export const ActionsControl = () => {
             <button
               key={reason.id}
               type="button"
-              onClick={() => handleFreeCatracaConfirm(data, settings, reason)}
+              onClick={() => handleFreeCatracaConfirm(data, reason)}
               className="px-5 py-7 bg-primary hover:bg-primary-700 text-white rounded"
             >
               {reason?.label}

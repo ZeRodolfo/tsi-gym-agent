@@ -50,6 +50,7 @@ export default function HistoricAccess() {
         <Title className="text-xl">Histórico de acessos na Catraca</Title>
       </div>
       {historics?.map((historic, index) => {
+        const person = historic.person;
         const item =
           historic?.enrollment || historic?.teacher || historic?.employee;
         return (
@@ -57,7 +58,7 @@ export default function HistoricAccess() {
             <div className="w-full flex flex-wrap gap-3 mt-8">
               <div>
                 <img
-                  src={item?.picture || logo}
+                  src={person?.picture || logo}
                   alt="Logo da TSI Gym"
                   className="w-[120px] h-[120px] rounded-md border-2 border-primary"
                 />
@@ -78,27 +79,31 @@ export default function HistoricAccess() {
                     <Label className="font-semibold text-[16px]">
                       Nome do usuário:
                     </Label>{" "}
-                    <span>{item?.name || "Usuário não identificado"}</span>
+                    <span>{person?.name || "Usuário não identificado"}</span>
                   </div>
                   <div>
                     <Label className="font-semibold text-[16px]">
                       Dt. Nascimento:
                     </Label>{" "}
-                    <span>{item?.birthdate || "N/A"}</span>
+                    <span>
+                      {person?.birthdate
+                        ? format(person?.birthdate, "dd/MM/yyyy HH:mm:ss")
+                        : "N/A"}
+                    </span>
                   </div>
                   <div>
                     <Label className="font-semibold text-[16px]">
                       Endereço:
                     </Label>{" "}
                     <span>
-                      {item?.addressZipcode
+                      {person?.address?.zipcode
                         ? [
-                            item?.addressStreet,
-                            item?.addressNumber,
-                            item?.addressNeighborhood,
-                            item?.addressCity,
-                            item?.addressState,
-                            item?.addressZipcode,
+                            person?.address?.street,
+                            person?.address?.number,
+                            person?.address?.neighborhood,
+                            person?.address?.city,
+                            person?.address?.state,
+                            person?.address?.zipcode,
                           ]
                             .filter(Boolean)
                             .join(", ")

@@ -15,6 +15,7 @@ const Person = new EntitySchema({
     name: { type: "varchar" },
     picture: { type: "varchar", nullable: true },
     birthdate: { type: "varchar", nullable: true },
+    addressId: { type: "varchar", nullable: true },
     companyId: { type: "varchar" },
     branchId: { type: "varchar" },
     createdAt: { type: "datetime", createDate: true },
@@ -28,11 +29,19 @@ const Person = new EntitySchema({
       eager: true,
       onDelete: "CASCADE",
     },
+    // address: {
+    //   type: "one-to-one",
+    //   target: "Address",
+    //   inverseSide: "person",
+    //   cascade: true,
+    // },
     address: {
       type: "one-to-one",
       target: "Address",
-      inverseSide: "person",
+      inverseSide: "company",
+      joinColumn: { name: "addressId" }, // ✅ define a FK corretamente
       cascade: true,
+      onDelete: "SET NULL",
     },
     enrollments: {
       type: "one-to-many",

@@ -53,7 +53,7 @@ export default function AccessControlConfig({ onSetup }) {
   const [openResetCatracaModal, setOpenResetCatracaModal] = useState(false);
 
   const navigate = useNavigate();
-  const { data: catraca, settings, setSettings } = useRevalidateToken();
+  const { catraca } = useRevalidateToken();
 
   //   const [timeout, setTimeout] = useState(5);
   //   const [primeSF, setPrimeSF] = useState(false);
@@ -61,27 +61,26 @@ export default function AccessControlConfig({ onSetup }) {
 
   useEffect(() => {
     const load = async () => {
-      setIp(settings?.ip || "");
-      setIpLocal(settings?.ipLocal || "");
-      setSideToEnter(settings?.catraSideToEnter || "0");
-      setPort(settings?.port || 3000);
-      setUsername(settings?.username || "tsitech");
-      setPassword(settings?.password || "admin");
-      setTxtWelcome(settings?.customAuthMessage || "Seja bem-vindo");
-      setTxtAccessDenied(settings?.customDenyMessage || "Acesso negado");
+      setIp(catraca?.ip || "");
+      setIpLocal(catraca?.ipLocal || "");
+      setSideToEnter(catraca?.catraSideToEnter || "0");
+      setPort(catraca?.port || 3000);
+      setUsername(catraca?.username || "tsitech");
+      setPassword(catraca?.password || "admin");
+      setTxtWelcome(catraca?.customAuthMessage || "Seja bem-vindo");
+      setTxtAccessDenied(catraca?.customDenyMessage || "Acesso negado");
       setTxtUserNotIdentifier(
-        settings?.customNotIdentifiedMessage || "Usuário não reconhecido"
+        catraca?.customNotIdentifiedMessage || "Usuário não reconhecido"
       );
     };
 
     load();
-  }, [settings]);
+  }, [catraca]);
 
   const handleTestPrinter = async () => {
-    window.printerAPI
-      .print("<h1>Olá impressora!</h1>")
-      // .then((res) => console.log("Impresso com sucesso:", res))
-      // .catch((err) => console.error("Erro ao imprimir:", err));
+    window.printerAPI.print("<h1>Olá impressora!</h1>");
+    // .then((res) => console.log("Impresso com sucesso:", res))
+    // .catch((err) => console.error("Erro ao imprimir:", err));
   };
 
   const handleTestComunication = async () => {
@@ -154,9 +153,7 @@ export default function AccessControlConfig({ onSetup }) {
 
     try {
       const payload = {
-        type: 'catraca',
         ip,
-        port,
         username,
         password,
         customAuthMessage: txtWelcome,
@@ -168,11 +165,12 @@ export default function AccessControlConfig({ onSetup }) {
         enableCustomNotIdentifiedMessage: "1",
         enableCustomMaskMessage: "1",
         ipLocal,
+        portLocal: port,
         catraSideToEnter: sideToEnter,
       };
 
-      const { data: settingsData } = await api.post("/settings", payload);
-      setSettings(settingsData);
+      const { data: catracaData } = await api.post("/catraca", payload);
+      // setSettings(catracaData);
 
       const response = await login(ip, { login: username, password });
       const { session } = response?.data || {};

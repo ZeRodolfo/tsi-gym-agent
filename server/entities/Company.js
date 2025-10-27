@@ -13,16 +13,7 @@ const Company = new EntitySchema({
     fantasyName: { type: "varchar", nullable: true },
     cnpj: { type: "varchar", nullable: true },
     logo: { type: "varchar", nullable: true },
-
-    // Endereço
-    zipcode: { type: "varchar", nullable: true },
-    street: { type: "varchar", nullable: true },
-    number: { type: "varchar", nullable: true },
-    neighborhood: { type: "varchar", nullable: true },
-    complement: { type: "varchar", nullable: true },
-    city: { type: "varchar", nullable: true },
-    state: { type: "varchar", nullable: true },
-
+    addressId: { type: "varchar", nullable: true },
     createdAt: {
       type: "datetime",
       createDate: true,
@@ -30,6 +21,16 @@ const Company = new EntitySchema({
     updatedAt: {
       type: "datetime",
       updateDate: true,
+    },
+  },
+  relations: {
+    address: {
+      type: "one-to-one",
+      target: "Address",
+      inverseSide: "company",
+      joinColumn: { name: "addressId" }, // ✅ define a FK corretamente
+      cascade: true,
+      onDelete: "SET NULL",
     },
   },
 });

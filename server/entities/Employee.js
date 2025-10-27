@@ -27,6 +27,7 @@ const Employee = new EntitySchema({
       type: "one-to-one",
       target: "Person",
       inverseSide: "employee",
+      joinColumn: { name: "personId" },
     },
     times: {
       type: "one-to-many",

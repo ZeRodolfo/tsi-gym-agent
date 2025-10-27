@@ -8,13 +8,7 @@ const Enrollment = new EntitySchema({
       type: "varchar",
       primary: true, // chave principal real
     },
-    identifierCatraca: {
-      type: "int",
-      nullable: false, // apenas normal
-    },
     code: { type: "varchar", nullable: true },
-    name: { type: "varchar" },
-    picture: { type: "varchar", nullable: true },
     startDate: { type: "varchar" },
     endDate: { type: "varchar" },
     extendedAt: { type: "varchar", nullable: true },
@@ -22,16 +16,9 @@ const Enrollment = new EntitySchema({
     companyId: { type: "varchar" },
     branchId: { type: "varchar" },
     studentId: { type: "varchar" },
-    studentName: { type: "varchar" },
-    birthdate: { type: "varchar", nullable: true },
-    addressZipcode: { type: "varchar", nullable: true },
-    addressStreet: { type: "varchar", nullable: true },
-    addressNumber: { type: "varchar", nullable: true },
-    addressNeighborhood: { type: "varchar", nullable: true },
-    addressComplement: { type: "varchar", nullable: true },
-    addressCity: { type: "varchar", nullable: true },
-    addressState: { type: "varchar", nullable: true },
-    synced: { type: "boolean", default: false },
+    personId: { type: "varchar" },
+    companyId: { type: "varchar" },
+    branchId: { type: "varchar" },
     createdAt: {
       type: "datetime",
     },
@@ -40,6 +27,19 @@ const Enrollment = new EntitySchema({
     },
   },
   relations: {
+    company: {
+      type: "many-to-one",
+      target: "Company",
+      joinColumn: { name: "companyId" },
+      // eager: true,
+      // nullable: true,
+      // onDelete: "SET NULL", // em vez de cascade, seta nulo
+    },
+    person: {
+      type: "many-to-one",
+      target: "Person",
+      inverseSide: "enrollment",
+    },
     historics: {
       type: "one-to-many",
       target: "Historic",
@@ -49,7 +49,7 @@ const Enrollment = new EntitySchema({
   indices: [
     {
       name: "IDX_ENROLLMENT_ID_CATRACA",
-      columns: ["id", "identifierCatraca"],
+      columns: ["id"],
       unique: true, // combinação única
     },
   ],

@@ -5,13 +5,13 @@ import { Input } from "components/ui/Input";
 import { Button } from "components/ui/Button";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { getCatraca, checkTokens } from "services/catracas";
-import { getSettings } from "services/settings";
+import { getAgent, validateAgentTokens } from "services/agents";
+// import { getSettings } from "services/settings";
 import logo from "assets/logo.png"; // Caminho relativo a partir do seu componente
 
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_LOCAL_URL,
-});
+// const api = axios.create({
+//   baseURL: process.env.REACT_APP_API_LOCAL_URL,
+// });
 
 export default function SetupPage() {
   const [clientId, setClientId] = useState("");
@@ -28,13 +28,14 @@ export default function SetupPage() {
 
   useEffect(() => {
     const checkToken = async () => {
-      const { data: catraca } = await getCatraca();
-      const { data: settings } = await getSettings();
+      const { data: agent } = await getAgent();
+      if (agent?.id) return navigate("/main");
 
-      if (!settings?.id && !settings?.ip && catraca?.id)
-        return navigate("/parameters");
-      else if (catraca?.id && settings?.id && settings?.ip)
-        return navigate("/main");
+      // const { data: settings } = await getSettings();
+      // if (!settings?.id && !settings?.ip && catraca?.id)
+      //   return navigate("/parameters");
+      // else if (catraca?.id && settings?.id && settings?.ip)
+      //   return navigate("/main");
     };
 
     checkToken();
@@ -43,7 +44,7 @@ export default function SetupPage() {
   const validateToken = async () => {
     try {
       const machineKey = await window.system.getMachineId();
-      const { data } = await checkTokens({
+      const { data } = await validateAgentTokens({
         clientId,
         clientSecret,
         machineKey,
@@ -51,7 +52,8 @@ export default function SetupPage() {
       });
 
       if (data?.id) {
-        navigate("/parameters");
+        // save data
+        navigate("/main");
       } else {
         toast.error("Credenciais inválidas. Por favor, tente novamente.");
       }

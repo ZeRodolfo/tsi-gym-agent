@@ -45,8 +45,8 @@ export default function AccessControl() {
       }
     };
 
-    socketLocal.on("access", handleAccess);
-    return () => socketLocal.off("access", handleAccess);
+    socketLocal?.on("access", handleAccess);
+    return () => socketLocal?.off("access", handleAccess);
   }, [socketLocal, queryClient]);
 
   // useEffect(() => {
@@ -113,6 +113,7 @@ export default function AccessControl() {
       </div>
     );
 
+  const person = historic?.person;
   const item = historic?.enrollment || historic?.teacher || historic?.employee;
 
   return (
@@ -123,7 +124,7 @@ export default function AccessControl() {
       <div className="w-full flex flex-wrap gap-3 mt-8">
         <div>
           <img
-            src={item?.picture || logo}
+            src={person?.picture || logo}
             alt="Logo da TSI Gym"
             className="w-[120px] h-[120px] rounded-md border-2 border-primary"
           />
@@ -143,25 +144,29 @@ export default function AccessControl() {
               <Label className="font-semibold text-[16px]">
                 Nome do usuário:
               </Label>{" "}
-              <span>{item?.name || "Usuário não identificado"}</span>
+              <span>{person?.name || "Usuário não identificado"}</span>
             </div>
             <div>
               <Label className="font-semibold text-[16px]">
                 Dt. Nascimento:
               </Label>{" "}
-              <span>{item?.birthdate || "N/A"}</span>
+              <span>
+                {person?.birthdate
+                  ? format(person?.birthdate, "dd/MM/yyyy HH:mm:ss")
+                  : "N/A"}
+              </span>
             </div>
             <div>
               <Label className="font-semibold text-[16px]">Endereço:</Label>{" "}
               <span>
-                {item?.addressZipcode
+                {person?.address?.zipcode
                   ? [
-                      item?.addressStreet,
-                      item?.addressNumber,
-                      item?.addressNeighborhood,
-                      item?.addressCity,
-                      item?.addressState,
-                      item?.addressZipcode,
+                      person?.address?.street,
+                      person?.address?.number,
+                      person?.address?.neighborhood,
+                      person?.address?.city,
+                      person?.address?.state,
+                      person?.address?.zipcode,
                     ]
                       .filter(Boolean)
                       .join(", ")
