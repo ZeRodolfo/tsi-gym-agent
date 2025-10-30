@@ -39,9 +39,12 @@ export default function AccessControl() {
     const handleAccess = (newAccess) => {
       console.log("📥 Atualizando histórico via socket...", newAccess);
       if (newAccess) {
-        queryClient.setQueryData(["historicLastAccess"], () => {
-          return newAccess;
+        queryClient.invalidateQueries({
+          queryKey: ["historicLastAccess"],
         });
+        // queryClient.setQueryData(["historicLastAccess"], () => {
+        //   return newAccess;
+        // });
       }
     };
 

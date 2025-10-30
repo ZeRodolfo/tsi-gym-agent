@@ -14,6 +14,7 @@ module.exports = async function job() {
     // Busca os não sincronizados
     const unsynced = await repo.find({ where: { synced: false } });
 
+    console.log(unsynced)
     if (unsynced.length === 0) {
       logger.info("Nenhum histórico pendente para sincronizar.");
       return;
@@ -37,6 +38,7 @@ module.exports = async function job() {
       logger.info("Históricos sincronizados com sucesso!");
     }
   } catch (error) {
+    console.log(error)
     logger.error(
       "Erro ao sincronizar históricos:",
       error?.response?.data || error.message

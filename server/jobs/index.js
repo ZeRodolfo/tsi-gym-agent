@@ -13,16 +13,6 @@ let isSyncJobRunning = false;
 let isSyncEnrollmentsRunning = false;
 
 module.exports = () => {
-  // cron.schedule("*/5 * * * *", async () => {
-  //   logger.info("Executando job de sincronização...");
-  //   await syncJob();
-  // });
-
-  // cron.schedule("*/3 * * * *", async () => {
-  //   logger.info("Executando syncEnrollmentsJob de sincronização...");
-  //   await syncEnrollmentsJob();
-  // });
-
   cron.schedule("*/5 * * * * *", async () => {
     if (isSyncPeopleJobRunning) {
       logger.warn(
@@ -68,7 +58,7 @@ module.exports = () => {
   cron.schedule("*/5 * * * * *", async () => {
     if (isSyncEmployeesJobRunning) {
       logger.warn(
-        "⏩ Job de sincronização de professores pulado (execução anterior ainda em andamento)"
+        "⏩ Job de sincronização de funcionários pulado (execução anterior ainda em andamento)"
       );
       return;
     }
@@ -109,26 +99,23 @@ module.exports = () => {
     }
   });
 
-  // Executa a cada 20 segundos
-  // cron.schedule("*/60 * * * * *", async () => {
-  //   if (isSyncJobRunning) {
-  //     logger.warn(
-  //       "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
-  //     );
-  //     return;
-  //   }
+  cron.schedule("*/60 * * * * *", async () => {
+    if (isSyncJobRunning) {
+      logger.warn(
+        "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
+      );
+      return;
+    }
 
-  //   isSyncJobRunning = true;
-  //   logger.info("🚀 Iniciando job de sincronização...");
-  //   try {
-  //     await syncJob();
-  //     logger.info("✅ Job de sincronização finalizado com sucesso");
-  //   } catch (err) {
-  //     logger.error("❌ Erro no job de sincronização:", err);
-  //   } finally {
-  //     isSyncJobRunning = false;
-  //   }
-  // });
-
-  // // Executa a cada 60 segundos também (ajuste se quiser outro intervalo)
+    isSyncJobRunning = true;
+    logger.info("🚀 Iniciando job de sincronização...");
+    try {
+      await syncJob();
+      logger.info("✅ Job de sincronização finalizado com sucesso");
+    } catch (err) {
+      logger.error("❌ Erro no job de sincronização:", err);
+    } finally {
+      isSyncJobRunning = false;
+    }
+  });
 };

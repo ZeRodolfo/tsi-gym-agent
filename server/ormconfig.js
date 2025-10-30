@@ -16,10 +16,10 @@ const { Employee } = require("./entities/Employee");
 const { WorkTime } = require("./entities/WorkTime");
 
 const logger = require("./utils/logger");
-const dbPath =
-  process.env.NODE_ENV === "development"
-    ? "agent.db"
-    : path.join(app.getPath("userData"), "agent.db");
+const dbPath ="agent.db"
+  // process.env.NODE_ENV === "development"
+  //   ? "agent.db"
+  //   : path.join(app.getPath("userData"), "agent.db");
 
 logger.info("Database filename: " + dbPath);
 

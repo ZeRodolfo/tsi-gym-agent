@@ -38,10 +38,10 @@ module.exports = async function job() {
       const {
         data: { session },
       } = await axios.post(
-        `http://${settings?.ip}/login.fcgi`,
+        `http://${catraca?.ip}/login.fcgi`,
         {
-          login: settings?.username,
-          password: settings?.password,
+          login: catraca?.username,
+          password: catraca?.password,
         },
         headerParams
       );
@@ -56,7 +56,7 @@ module.exports = async function job() {
 
       if (peopleUsers.length)
         await axios.post(
-          `http://${settings?.ip}/create_or_modify_objects.fcgi?session=${session}`,
+          `http://${catraca?.ip}/create_or_modify_objects.fcgi?session=${session}`,
           {
             object: "users",
             values: peopleUsers,
@@ -149,7 +149,7 @@ module.exports = async function job() {
         // };
 
         const result = await axios.post(
-          `http://${settings?.ip}/user_set_image_list.fcgi?session=${session}`,
+          `http://${catraca?.ip}/user_set_image_list.fcgi?session=${session}`,
           {
             match: false,
             user_images: chunk,

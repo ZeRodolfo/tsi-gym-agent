@@ -1,6 +1,7 @@
 const axios = require("axios");
 const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger"); // Importe o logger configurado
+const { Not } = require("typeorm");
 
 const api = axios.create({
   baseURL: process.env.BASE_URL,
@@ -43,6 +44,13 @@ module.exports = async function job() {
           continue;
         }
 
+        await repoEmployee
+          .createQueryBuilder()
+          .delete()
+          .where("personId = :personId", { personId: payload.personId })
+          .andWhere("id != :id", { id: payload.id })
+          .execute();
+
         let employee = await repoEmployee.findOneBy({
           id: payload.id,
         });
@@ -83,9 +91,10 @@ module.exports = async function job() {
 
     logger.info("Sincronização finalizada com sucesso.");
   } catch (err) {
+    logger.info("ERRRROR", err);
     logger.error(
       "Não foi possível sincronizar os dados com a catraca e banco de dados.",
-      err?.response?.data || err?.message
+      err?.message
     );
   }
 };

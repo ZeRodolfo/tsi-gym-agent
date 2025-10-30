@@ -143,28 +143,29 @@ router.post("/", async (req, res) => {
     catracaId: catraca?.id || null,
   };
 
-  try {
-    const repo = AppDataSource.getRepository("Settings");
-    const allSettings = await repo.find({
-      where: {
-        type: "catraca",
-      },
-    });
-    let settings = allSettings?.[0];
+  // try {
+  //   const repo = AppDataSource.getRepository("Settings");
+  //   const allSettings = await repo.find({
+  //     where: {
+  //       type: "catraca",
+  //     },
+  //   });
+  //   let settings = allSettings?.[0];
 
-    if (!settings) {
-      settings = repo.create(payload);
-      await repo.save(settings);
-    } else {
-      settings = { ...settings, ...payload };
-      await repo.save(settings);
-    }
+  //   if (!settings) {
+  //     settings = repo.create(payload);
+  //     await repo.save(settings);
+  //   } else {
+  //     settings = { ...settings, ...payload };
+  //     await repo.save(settings);
+  //   }
 
-    return res.status(201).json(settings);
-  } catch (err) {
-    logger.error("error", err);
-    return res.status(400).json({ message: err?.response?.data?.message });
-  }
+  //   return res.status(201).json(settings);
+  // } catch (err) {
+  //   logger.error("error", err);
+  //   return res.status(400).json({ message: err?.response?.data?.message });
+  // }
+  return res.status(201).json(null);
 });
 
 module.exports = router;

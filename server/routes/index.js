@@ -201,6 +201,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         companyId: catraca?.companyId,
         branchId: catraca?.branchId,
         personId: person?.id,
+        identifierCatraca: person?.identifierCatraca,
         type: "terminal",
         attendedAt: new Date(),
         status: "not_found",
@@ -238,6 +239,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         status: "person_not_store",
         message,
         personId: person?.id,
+        identifierCatraca: person?.identifierCatraca,
       });
       await repoHistoric.save(historic);
       io.emit("access", { ...historic });
@@ -298,6 +300,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
             teacherId: teacher?.id,
             employeeId: employee?.id,
             personId: person?.id,
+            identifierCatraca: person?.identifierCatraca,
           });
           await repoHistoric.save(historic);
           io.emit("access", { ...historic });
@@ -325,6 +328,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
           status: "not_found",
           message,
           personId: person?.id,
+          identifierCatraca: person?.identifierCatraca,
         });
         await repoHistoric.save(historic);
         io.emit("access", { ...historic });
@@ -399,16 +403,15 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         endDate: enrollment?.endDate,
       });
 
-      const { studentId, id, companyId, branchId, identifierCatraca } =
-        enrollment || {};
+      const { studentId, id, companyId, branchId } = enrollment || {};
       const payloadHistoric = {
         studentId,
-        enrollment: { id, identifierCatraca }, // já cria o vínculo via FK
+        enrollment: { id, identifierCatraca: person?.identifierCatraca }, // já cria o vínculo via FK
         catraca: { id: catraca?.id },
         companyId,
         branchId,
         type: "terminal",
-        identifierCatraca,
+        identifierCatraca: person?.identifierCatraca,
         attendedAt: new Date(),
         personId: person?.id,
       };
@@ -644,6 +647,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       companyId: catraca?.companyId,
       branchId: catraca?.branchId,
       personId: person?.id,
+      identifierCatraca: person?.identifierCatraca || userId,
       type: "terminal",
       attendedAt: new Date(),
       status: "not_found",

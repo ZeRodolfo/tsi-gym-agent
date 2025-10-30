@@ -43,6 +43,13 @@ module.exports = async function job() {
           continue;
         }
 
+        await repoTeacher
+          .createQueryBuilder()
+          .delete()
+          .where("personId = :personId", { personId: payload.personId })
+          .andWhere("id != :id", { id: payload.id })
+          .execute();
+
         let teacher = await repoTeacher.findOneBy({
           id: payload.id,
         });
