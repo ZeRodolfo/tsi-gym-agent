@@ -35,18 +35,18 @@ module.exports = async function job() {
     if (response?.people?.length) {
       logger.info("Iniciando sincronização com a catraca");
 
-      // const {
-      //   data: { session },
-      // } = await axios.post(
-      //   `http://${catraca?.ip}/login.fcgi`,
-      //   {
-      //     login: catraca?.username,
-      //     password: catraca?.password,
-      //   },
-      //   headerParams
-      // );
-      // logger.info("SESSÂO", { session });
-      // if (!session) throw new Error("Falha ao autenticar na catraca");
+      const {
+        data: { session },
+      } = await axios.post(
+        `http://${catraca?.ip}/login.fcgi`,
+        {
+          login: catraca?.username,
+          password: catraca?.password,
+        },
+        headerParams
+      );
+      logger.info("SESSÂO", { session });
+      if (!session) throw new Error("Falha ao autenticar na catraca");
 
       const peopleUsers = response.people?.map((item) => ({
         id: item?.identifierCatraca,
@@ -62,14 +62,14 @@ module.exports = async function job() {
             `Enviando lote ${i / chunkSize + 1} (${chunk.length} cadastros)...`
           );
 
-          // await axios.post(
-          //   `http://${catraca?.ip}/create_or_modify_objects.fcgi?session=${session}`,
-          //   {
-          //     object: "users",
-          //     values: chunk,
-          //   },
-          //   headerParams
-          // );
+          await axios.post(
+            `http://${catraca?.ip}/create_or_modify_objects.fcgi?session=${session}`,
+            {
+              object: "users",
+              values: chunk,
+            },
+            headerParams
+          );
         }
       }
 
@@ -95,12 +95,12 @@ module.exports = async function job() {
         logger.info(
           `📸 Enviando lote ${i / chunkSize + 1} (${chunk.length} fotos)...`
         );
-        const result = {
-          results: chunk?.map((item) => ({
-            user_id: item.user_id,
-            success: true,
-          })),
-        };
+        // const result = {
+        //   results: chunk?.map((item) => ({
+        //     user_id: item.user_id,
+        //     success: true,
+        //   })),
+        // };
 
         // const result = {
         //   results: [
@@ -156,14 +156,14 @@ module.exports = async function job() {
         //   ],
         // };
 
-        // const { data: result } = await axios.post(
-        //   `http://${catraca?.ip}/user_set_image_list.fcgi?session=${session}`,
-        //   {
-        //     match: false,
-        //     user_images: chunk,
-        //   },
-        //   headerParams
-        // );
+        const { data: result } = await axios.post(
+          `http://${catraca?.ip}/user_set_image_list.fcgi?session=${session}`,
+          {
+            match: false,
+            user_images: chunk,
+          },
+          headerParams
+        );
 
         if (result?.results) results.push(...result?.results);
       }
