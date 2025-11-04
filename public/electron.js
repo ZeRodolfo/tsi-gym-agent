@@ -692,9 +692,11 @@ ipcMain.on("printer:print", async (_, setup, type, payload) => {
       if (type === "cashReceipt")
         return await printerCashReceipt(setup, payload);
       if (type === "payment") {
-        for (let via = 1; via <= (payload?.via || 1); via++) {
-          await printerPayment(setup, payload, via);
-        }
+        // const current = payload?.via || 1;
+        // for (let via = 1; via <= current; via++) {
+        //   await printerPayment(setup, payload, via);
+        // }
+        return await printerPayment(setup, payload, payload?.via);
       }
       if (type === "cashResumeMovement")
         return await printerCashResumeMovement(setup, payload);

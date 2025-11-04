@@ -3,6 +3,7 @@ import {
   login,
   liberarGiroSentidoHorario,
   liberarGiroSentidoAntiHorario,
+  enviarMensagemTela,
 } from "services/controlId/idBlockNext";
 import { api } from "services/api";
 
@@ -33,6 +34,10 @@ export const handleFreeCatracaConfirm = async (
     } else {
       await liberarGiroSentidoAntiHorario(catraca?.ip, session);
     }
+
+    await enviarMensagemTela(catraca?.ip, session, {
+      message: "Catraca Liberada",
+    });
 
     await api.post("/historic", {
       type: "manually",

@@ -280,6 +280,44 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       }
     }
 
+    if (teacher || employee) {
+      // salvar historico
+      const historic = repoHistoric.create({
+        catraca: { id: catraca?.id },
+        companyId: catraca?.companyId,
+        branchId: catraca?.branchId,
+        personId: person?.id,
+        type: "terminal",
+        identifierCatraca: userId,
+        attendedAt: new Date(),
+        status: "success",
+        message: `Bem-vindo, ${personName}!`,
+        teacherId: teacher?.id,
+        employeeId: employee?.id,
+      });
+      await repoHistoric.save(historic);
+
+      io.emit("access", { ...historic, teacher, employee });
+
+      // Se atingiu aqui, libera o acesso
+      // verificar o sentido da catraca atraves da configuração
+      const parameters =
+        catraca?.catraSideToEnter === "0"
+          ? "allow=clockwise"
+          : "allow=anticlockwise";
+      return res.json({
+        result: {
+          event: 7,
+          user_id: userId,
+          user_name: personName,
+          user_image: user_has_image === "1",
+          actions: [{ action: "catra", parameters }],
+          portal_id: portalId,
+          message: `Bem-vindo, ${personName}!`,
+        },
+      });
+    }
+
     if (!isAllowed) {
       // Buscar usuário no seu sistema, verificar quando existir mais de uma matricula
       // fazer uma verificação caso o aluno já possua uma matrícula e solicitar uma atualização na atual

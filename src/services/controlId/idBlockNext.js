@@ -104,6 +104,30 @@ export const executeActions = async (ip, session, { action, parameters }) => {
     });
 };
 
+export const enviarMensagemTela = async (ip, session, { message, timeout }) => {
+  console.log("Tentativa de enviar mensagem para a catraca:", {
+    ip,
+    session,
+    message,
+    timeout,
+  });
+  return await axios
+    .post(
+      `http://${ip}/message_to_screen.fcgi?session=${session}`,
+      {
+        message,
+        timeout: timeout || 7000,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 10000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
 export const liberarGiroSentidoHorario = async (ip, session) => {
   return await executeActions(ip, session, {
     action: "catra",

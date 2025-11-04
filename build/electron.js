@@ -68,7 +68,7 @@ function createSplashWindow() {
   //     : "http://localhost:3001" // dev
   // );
 
-  splashWindow.loadURL(`file://${path.join(__dirname, "index.html")}`)
+  splashWindow.loadURL(`file://${path.join(__dirname, "index.html")}`);
   // splashWindow.loadFile(path.join(__dirname, "splash.html"));
   splashWindow.once("ready-to-show", () => splashWindow.show());
 }
@@ -174,7 +174,6 @@ app.whenReady().then(async () => {
 
 //   // startServer(); // Inicia o mini servidor Node no mesmo app, verificar se a porta ou o servidor já esta de pé
 // });
-
 
 // app.on("ready", () => {
 //   // cria tray
@@ -430,7 +429,7 @@ const printerCashReceipt = async (setup, payload) => {
     printer.newLine();
     printer.alignRight();
 
-    printer.print("Valor inicial: ");
+    printer.print("Fundo de Caixa: ");
     printer.bold(true);
     printer.print(payload?.initialAmount);
     printer.bold(false);
@@ -442,41 +441,75 @@ const printerCashReceipt = async (setup, payload) => {
     printer.newLine();
     printer.print("Despesas: ");
     printer.bold(true);
-    printer.print(payload?.cashOut);
+    printer.print(`-${payload?.cashOut}`);
     printer.bold(false);
     printer.newLine();
 
-    if (!payload?.isClosedAt) printer.println("-------------");
+    // if (!payload?.isClosedAt)
+    printer.println("-------------");
 
     printer.print("Saldo: ");
     printer.bold(true);
     printer.print(payload?.total);
     printer.bold(false);
 
-    if (payload?.isFinalAmount) {
-      printer.newLine();
-      printer.println("-------------");
-      printer.print("Valor Final: ");
-      printer.bold(true);
-      printer.print(payload?.finalAmount);
-      printer.bold(false);
-      printer.newLine();
-      printer.print("Diferença: ");
-      printer.bold(true);
-      printer.print(payload?.difference);
-      printer.bold(false);
-    }
+    // if (payload?.isFinalAmount) {
+    //   printer.newLine();
+    //   printer.println("-------------");
+    //   printer.print("Valor Final: ");
+    //   printer.bold(true);
+    //   printer.print(payload?.finalAmount);
+    //   printer.bold(false);
+    //   printer.newLine();
+    //   printer.print("Diferença: ");
+    //   printer.bold(true);
+    //   printer.print(payload?.difference);
+    //   printer.bold(false);
+    // }
 
     printer.newLine();
     printer.newLine();
     printer.alignCenter();
     printer.println("________________________________");
-    printer.println("Assinatura (2º via)");
+    printer.println("Assinatura");
     printer.newLine();
     printer.println(payload?.signAt);
     await print(setup, printer);
   } catch (err) {
     console.log("Erro ao imprimir:", err);
+  }
+};
+
+const printerCashResumeMovement = async (setup, payload) => {
+  try {
+    const printer = await getPrinter(setup);
+
+    printer.tableCustom([
+      { text: "Data", align: "LEFT", width: 0.25, bold: true },
+      { text: "Descrição", align: "LEFT", width: 0.5, bold: true },
+      { text: "Valor", align: "RIGHT", width: 0.25, bold: true },
+    ]);
+
+    payload?.items?.forEach((item) => {
+      printer.tableCustom([
+        { text: item?.description, align: "LEFT", width: 0.5, bold: false },
+        { text: item?.dueDate, align: "CENTER", width: 0.25, bold: false },
+        { text: item?.price, align: "RIGHT", width: 0.25, bold: false },
+      ]);
+    });
+
+    printer.newLine();
+    printer.newLine();
+    printer.alignCenter();
+
+    printer.println("________________________________");
+    printer.println("Assinatura");
+    printer.newLine();
+
+    printer.println(payload?.signAt);
+    await print(setup, printer);
+  } catch (err) {
+    console.error("Erro ao imprimir:", err);
   }
 };
 
@@ -518,7 +551,7 @@ const printerCashMovement = async (setup, payload) => {
     printer.alignCenter();
 
     printer.println("________________________________");
-    printer.println("Assinatura (2º via)");
+    printer.println("Assinatura");
     printer.newLine();
 
     printer.println(payload?.signAt);
@@ -528,7 +561,7 @@ const printerCashMovement = async (setup, payload) => {
   }
 };
 
-const printerPayment = async (setup, payload) => {
+const printerPayment = async (setup, payload, via = 1) => {
   try {
     const printer = await getPrinter(setup);
     printer.bold(true);
@@ -546,6 +579,7 @@ const printerPayment = async (setup, payload) => {
     printer.bold(true);
     printer.print(payload?.studentName);
     printer.bold(false);
+    printer.print(` de CPF ${payload?.cpf}`);
     printer.newLine();
     printer.print("O valor de ");
     printer.bold(true);
@@ -623,7 +657,7 @@ const printerPayment = async (setup, payload) => {
     printer.newLine();
     printer.alignCenter();
     printer.println("________________________________");
-    printer.println("Assinatura (2º via)");
+    printer.println(`Assinatura (${via}º via)`);
     printer.newLine();
     printer.print(payload?.signAt);
     await print(setup, printer);
@@ -657,7 +691,15 @@ ipcMain.on("printer:print", async (_, setup, type, payload) => {
         return await printerCashMovement(setup, payload);
       if (type === "cashReceipt")
         return await printerCashReceipt(setup, payload);
-      if (type === "payment") return await printerPayment(setup, payload);
+      if (type === "payment") {
+        // const current = payload?.via || 1;
+        // for (let via = 1; via <= current; via++) {
+        //   await printerPayment(setup, payload, via);
+        // }
+        return await printerPayment(setup, payload, payload?.via);
+      }
+      if (type === "cashResumeMovement")
+        return await printerCashResumeMovement(setup, payload);
       resolve(true);
     } catch (err) {
       reject(err);

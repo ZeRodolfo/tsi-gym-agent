@@ -152,7 +152,7 @@ export const SocketProvider = ({ children }) => {
 
     socket.on("catraca_free", (response) => {
       console.log("Iniciando liberação da catraca", response);
-      handleFreeCatracaConfirm(data, settings, response?.reason);
+      handleFreeCatracaConfirm(catraca, response?.reason);
     });
 
     socket.on("command", (command) => {

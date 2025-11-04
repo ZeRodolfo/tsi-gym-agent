@@ -20,6 +20,7 @@ const logger = require("./utils/logger"); // Importe o logger configurado
 const { AppDataSource } = require("./ormconfig");
 const jobs = require("./jobs");
 const routers = require("./routes");
+const socketInit = require("./socket");
 
 // let logDirectory;
 
@@ -45,10 +46,11 @@ function startServer() {
   AppDataSource.initialize()
     .then(() => {
       logger.info("Conectado ao SQLite com TypeORM!");
+      socketInit();
     })
     .catch((err) => logger.error("Erro ao conectar no banco de dados:", err));
 
-  jobs();
+  // jobs();
   const app = express();
   // Configure o Morgan para usar o stream de arquivo
   // app.use(morgan("combined", { stream: accessLogStream }));

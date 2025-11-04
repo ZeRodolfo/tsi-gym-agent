@@ -78,17 +78,41 @@ module.exports = async function job() {
       const repoPerson = AppDataSource.getRepository("Person");
       const timestamp = Math.floor(Date.now() / 1000);
 
-      const peopleWithPicture = response.people?.map((item) => {
-        const picture = item?.picture;
-        return {
-          user_id: item?.identifierCatraca,
-          image: picture
-            ?.replace("data:image/png;base64,", "")
-            ?.replace("data:image/jpeg;base64,", "")
-            ?.replace(/\s/g, ""),
-          timestamp,
-        };
-      });
+      const peopleWithPicture = response.people
+        ?.filter((item) => item.picture?.trim())
+        ?.map((item) => {
+          const picture = item?.picture;
+          return {
+            user_id: item?.identifierCatraca,
+            image: picture
+              ?.replace("data:image/png;base64,", "")
+              ?.replace("data:image/jpeg;base64,", "")
+              ?.replace(/\s/g, ""),
+            timestamp,
+          };
+        });
+
+      const peopleFacesToRemove = response.people
+        ?.filter((item) => !item?.picture?.trim())
+        ?.map((item) => item?.identifierCatraca);
+
+      if (peopleFacesToRemove?.length) {
+        for (let i = 0; i < peopleFacesToRemove.length; i++) {
+          logger.info(
+            `Removendo fotos de (${peopleFacesToRemove[i]} fotos)...`
+          );
+
+          await axios.post(
+            `http://${catraca?.ip}/user_destroy_image.fcgi?session=${session}`,
+            {
+              user_id: peopleFacesToRemove[i],
+            },
+            headerParams
+          );
+
+          results.push(...result?.results);
+        }
+      }
 
       for (let i = 0; i < peopleWithPicture.length; i += chunkSize) {
         const chunk = peopleWithPicture.slice(i, i + chunkSize);
