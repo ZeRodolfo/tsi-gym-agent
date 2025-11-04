@@ -150,10 +150,10 @@ export const SocketProvider = ({ children }) => {
     //   paymentEnrollment(enrollment);
     // });
 
-    socket.on("catraca_free", (response) => {
-      console.log("Iniciando liberação da catraca", response);
-      handleFreeCatracaConfirm(catraca, response?.reason);
-    });
+    // socket.on("catraca_free", (response) => {
+    //   console.log("Iniciando liberação da catraca", response);
+    //   handleFreeCatracaConfirm(catraca, response?.reason);
+    // });
 
     socket.on("command", (command) => {
       console.log("📢 Comando recebido:", command);
