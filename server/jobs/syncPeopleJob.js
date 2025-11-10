@@ -96,11 +96,13 @@ module.exports = async function job() {
         ?.filter((item) => !item?.picture?.trim())
         ?.map((item) => item?.identifierCatraca);
 
+      logger.info(
+        "Total de Pessoas a terem fotos removidas: " +
+          peopleFacesToRemove?.length || 0
+      );
       if (peopleFacesToRemove?.length) {
         for (let i = 0; i < peopleFacesToRemove.length; i++) {
-          logger.info(
-            `Removendo fotos de (${peopleFacesToRemove[i]} fotos)...`
-          );
+          logger.info(`Removendo foto de (${peopleFacesToRemove[i]})...`);
 
           await axios.post(
             `http://${catraca?.ip}/user_destroy_image.fcgi?session=${session}`,
@@ -110,7 +112,11 @@ module.exports = async function job() {
             headerParams
           );
 
-          results.push(...result?.results);
+          logger.info(`Foto removida de (${peopleFacesToRemove[i]})...`);
+          results.push({
+            user_id: peopleFacesToRemove[i],
+            success: true,
+          });
         }
       }
 

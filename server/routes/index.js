@@ -431,6 +431,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         return 0;
       };
 
+      console.log('enrollments', enrollments)
       const sortedEnrollments = enrollments.sort(sortEnrollments);
       const enrollment = sortedEnrollments[0];
 
@@ -454,6 +455,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         personId: person?.id,
       };
 
+      console.log(enrollment)
       if (enrollment?.status === "pending") {
         const message = "Matrícula pendente.";
         const historic = repoHistoric.create({

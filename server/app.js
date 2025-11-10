@@ -46,11 +46,11 @@ function startServer() {
   AppDataSource.initialize()
     .then(() => {
       logger.info("Conectado ao SQLite com TypeORM!");
-      socketInit();
+      // socketInit();
     })
     .catch((err) => logger.error("Erro ao conectar no banco de dados:", err));
 
-  // jobs();
+  jobs();
   const app = express();
   // Configure o Morgan para usar o stream de arquivo
   // app.use(morgan("combined", { stream: accessLogStream }));

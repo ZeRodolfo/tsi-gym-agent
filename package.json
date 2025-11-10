@@ -15,6 +15,7 @@
     "server": "cross-env NODE_ENV=development nodemon server",
     "server:prod": "cross-env NODE_ENV=production nodemon server",
     "electron-dev": "concurrently \"cross-env NODE_ENV=development BROWSER=none npm start\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=development electron public/electron.js\"",
+    "electron-prod": "concurrently \"cross-env NODE_ENV=production BROWSER=none npm start\" \"wait-on http://localhost:3001 && cross-env NODE_ENV=production electron public/electron.js\"",
     "clean": "rimraf build dist",
     "build:react": "cross-env NODE_ENV=production react-scripts build",
     "build:server": "mkdir -p build/server && cross-env NODE_ENV=production cpx \"server/**/*\" build/server",

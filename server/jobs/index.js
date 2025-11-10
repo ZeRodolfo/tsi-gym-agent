@@ -5,77 +5,79 @@ const syncPeopleJob = require("./syncPeopleJob");
 const syncTeachersJob = require("./syncTeachersJob");
 const syncEmployeesJob = require("./syncEmployeesJob");
 const syncEnrollmentsJob = require("./syncEnrollmentsJob");
+const syncExistsEnrollmentsJob = require("./syncExistsEnrollmentsJob");
 
 let isSyncPeopleJobRunning = false;
 let isSyncTeachersJobRunning = false;
 let isSyncEmployeesJobRunning = false;
 let isSyncJobRunning = false;
 let isSyncEnrollmentsRunning = false;
+let isSyncExistsEnrollmentsRunning = false;
 
 module.exports = () => {
-  cron.schedule("*/5 * * * * *", async () => {
-    if (isSyncPeopleJobRunning) {
-      logger.warn(
-        "⏩ Job de sincronização de pessoas pulado (execução anterior ainda em andamento)"
-      );
-      return;
-    }
+  // cron.schedule("*/5 * * * * *", async () => {
+  //   if (isSyncPeopleJobRunning) {
+  //     logger.warn(
+  //       "⏩ Job de sincronização de pessoas pulado (execução anterior ainda em andamento)"
+  //     );
+  //     return;
+  //   }
 
-    isSyncPeopleJobRunning = true;
-    logger.info("🚀 Iniciando job de sincronização de pessoas...");
-    try {
-      await syncPeopleJob();
-      logger.info("✅ Job de sincronização de pessoas finalizado com sucesso");
-    } catch (err) {
-      logger.error("❌ Erro no job de sincronização de pessoas:", err);
-    } finally {
-      isSyncPeopleJobRunning = false;
-    }
-  });
+  //   isSyncPeopleJobRunning = true;
+  //   logger.info("🚀 Iniciando job de sincronização de pessoas...");
+  //   try {
+  //     await syncPeopleJob();
+  //     logger.info("✅ Job de sincronização de pessoas finalizado com sucesso");
+  //   } catch (err) {
+  //     logger.error("❌ Erro no job de sincronização de pessoas:", err);
+  //   } finally {
+  //     isSyncPeopleJobRunning = false;
+  //   }
+  // });
 
-  cron.schedule("*/5 * * * * *", async () => {
-    if (isSyncTeachersJobRunning) {
-      logger.warn(
-        "⏩ Job de sincronização de professores pulado (execução anterior ainda em andamento)"
-      );
-      return;
-    }
+  // cron.schedule("*/5 * * * * *", async () => {
+  //   if (isSyncTeachersJobRunning) {
+  //     logger.warn(
+  //       "⏩ Job de sincronização de professores pulado (execução anterior ainda em andamento)"
+  //     );
+  //     return;
+  //   }
 
-    isSyncTeachersJobRunning = true;
-    logger.info("🚀 Iniciando job de sincronização de professores...");
-    try {
-      await syncTeachersJob();
-      logger.info(
-        "✅ Job de sincronização de professores finalizado com sucesso"
-      );
-    } catch (err) {
-      logger.error("❌ Erro no job de sincronização de professores:", err);
-    } finally {
-      isSyncTeachersJobRunning = false;
-    }
-  });
+  //   isSyncTeachersJobRunning = true;
+  //   logger.info("🚀 Iniciando job de sincronização de professores...");
+  //   try {
+  //     await syncTeachersJob();
+  //     logger.info(
+  //       "✅ Job de sincronização de professores finalizado com sucesso"
+  //     );
+  //   } catch (err) {
+  //     logger.error("❌ Erro no job de sincronização de professores:", err);
+  //   } finally {
+  //     isSyncTeachersJobRunning = false;
+  //   }
+  // });
 
-  cron.schedule("*/5 * * * * *", async () => {
-    if (isSyncEmployeesJobRunning) {
-      logger.warn(
-        "⏩ Job de sincronização de funcionários pulado (execução anterior ainda em andamento)"
-      );
-      return;
-    }
+  // cron.schedule("*/5 * * * * *", async () => {
+  //   if (isSyncEmployeesJobRunning) {
+  //     logger.warn(
+  //       "⏩ Job de sincronização de funcionários pulado (execução anterior ainda em andamento)"
+  //     );
+  //     return;
+  //   }
 
-    isSyncEmployeesJobRunning = true;
-    logger.info("🚀 Iniciando job de sincronização de funcionários...");
-    try {
-      await syncEmployeesJob();
-      logger.info(
-        "✅ Job de sincronização de funcionários finalizado com sucesso"
-      );
-    } catch (err) {
-      logger.error("❌ Erro no job de sincronização de funcionários:", err);
-    } finally {
-      isSyncEmployeesJobRunning = false;
-    }
-  });
+  //   isSyncEmployeesJobRunning = true;
+  //   logger.info("🚀 Iniciando job de sincronização de funcionários...");
+  //   try {
+  //     await syncEmployeesJob();
+  //     logger.info(
+  //       "✅ Job de sincronização de funcionários finalizado com sucesso"
+  //     );
+  //   } catch (err) {
+  //     logger.error("❌ Erro no job de sincronização de funcionários:", err);
+  //   } finally {
+  //     isSyncEmployeesJobRunning = false;
+  //   }
+  // });
 
   cron.schedule("*/5 * * * * *", async () => {
     if (isSyncEnrollmentsRunning) {
@@ -99,23 +101,50 @@ module.exports = () => {
     }
   });
 
-  cron.schedule("*/60 * * * * *", async () => {
-    if (isSyncJobRunning) {
+  cron.schedule("*/15 * * * * *", async () => {
+    if (isSyncExistsEnrollmentsRunning) {
       logger.warn(
-        "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
+        "⏩ Job de exclusão de matrículas no banco principal pulado (execução anterior ainda em andamento)"
       );
       return;
     }
 
-    isSyncJobRunning = true;
-    logger.info("🚀 Iniciando job de sincronização...");
+    isSyncExistsEnrollmentsRunning = true;
+    logger.info(
+      "🚀 Iniciando job de exclusão de matrículas no banco principal..."
+    );
     try {
-      await syncJob();
-      logger.info("✅ Job de sincronização finalizado com sucesso");
+      await syncExistsEnrollmentsJob();
+      logger.info(
+        "✅ Job de exclusão de matrículas no banco principal finalizado com sucesso"
+      );
     } catch (err) {
-      logger.error("❌ Erro no job de sincronização:", err);
+      logger.error(
+        "❌ Erro no job de exclusão de matrículas no banco principal:",
+        err
+      );
     } finally {
-      isSyncJobRunning = false;
+      isSyncExistsEnrollmentsRunning = false;
     }
   });
+
+  // cron.schedule("*/60 * * * * *", async () => {
+  //   if (isSyncJobRunning) {
+  //     logger.warn(
+  //       "⏩ Job de sincronização pulado (execução anterior ainda em andamento)"
+  //     );
+  //     return;
+  //   }
+
+  //   isSyncJobRunning = true;
+  //   logger.info("🚀 Iniciando job de sincronização...");
+  //   try {
+  //     await syncJob();
+  //     logger.info("✅ Job de sincronização finalizado com sucesso");
+  //   } catch (err) {
+  //     logger.error("❌ Erro no job de sincronização:", err);
+  //   } finally {
+  //     isSyncJobRunning = false;
+  //   }
+  // });
 };
