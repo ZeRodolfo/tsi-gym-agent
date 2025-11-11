@@ -116,6 +116,7 @@ module.exports = async function job() {
           results.push({
             user_id: peopleFacesToRemove[i],
             success: true,
+            removedPicture: true,
           });
         }
       }
@@ -129,6 +130,20 @@ module.exports = async function job() {
         //   results: chunk?.map((item) => ({
         //     user_id: item.user_id,
         //     success: true,
+        //     scores: {
+        //       bounds_width: 104,
+        //       horizontal_center_offset: 16,
+        //       vertical_center_offset: -150,
+        //       center_pose_quality: 768,
+        //       sharpness_quality: 1000,
+        //     },
+        //     // errors: [
+        //     //   {
+        //     //     code: 1,
+        //     //     message:
+        //     //       "Failed: Invalid member 'timestamp' (int expected, got string)",
+        //     //   },
+        //     // ],
         //   })),
         // };
 
@@ -199,7 +214,7 @@ module.exports = async function job() {
       }
 
       for (const result of results) {
-        if (result?.success) {
+        if (result?.success && !result?.errors?.length) {
           const payload = response.people?.find(
             (item) => item.identifierCatraca === result.user_id
           );
