@@ -35,7 +35,7 @@ const Historic = new EntitySchema({
     },
     catracaId: {
       type: "varchar",
-      nullable: false,
+      nullable: true,
     },
     companyId: {
       type: "varchar",
@@ -81,7 +81,8 @@ const Historic = new EntitySchema({
         },
       ],
       inverseSide: "historics",
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
+      nullable: true,
     },
     enrollment: {
       type: "many-to-one",
@@ -97,7 +98,8 @@ const Historic = new EntitySchema({
         },
       ],
       inverseSide: "historics",
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
+      nullable: true,
     },
     catraca: {
       type: "many-to-one",
@@ -109,7 +111,8 @@ const Historic = new EntitySchema({
         },
       ],
       inverseSide: "historics",
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
+      nullable: true,
     },
     employee: {
       type: "many-to-one",
@@ -121,7 +124,8 @@ const Historic = new EntitySchema({
         },
       ],
       inverseSide: "historics",
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
+      nullable: true,
     },
     teacher: {
       type: "many-to-one",
@@ -133,7 +137,8 @@ const Historic = new EntitySchema({
         },
       ],
       inverseSide: "historics",
-      onDelete: "CASCADE",
+      onDelete: "SET NULL",
+      nullable: true,
     },
   },
 });

@@ -805,7 +805,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 router.use("/catracas", catracaRoutes);
 router.use("/enrollments", enrollmentsRoutes);
 router.use("/historic", historicsRoutes);
-router.use("/sync", syncRoutes);
+// router.use("/sync", syncRoutes);
 router.use("/printers", printersRoutes);
 router.use("/teachers", teachersRoutes);
 router.use("/employees", employeesRoutes);

@@ -153,6 +153,7 @@ router.post("/validate-tokens", async (req, res) => {
       message: "Agente não encontrada. Verifique as credencias de acesso.",
     });
   } catch (err) {
+    console.log(err);
     logger.error(`Não foi possível validar o token:`, {
       payload: { clientId, clientSecret, machineKey, machineName },
       messageError: err?.response?.data,
