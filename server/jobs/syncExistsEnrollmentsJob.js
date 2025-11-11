@@ -12,32 +12,56 @@ module.exports = async function job() {
     const catracas = await repoCatraca.find();
     const catraca = catracas?.[0];
 
-    const repoEnrollment = AppDataSource.getRepository("Enrollment");
-    const enrollments = await repoEnrollment.find();
-
-    for (const item of enrollments) {
-      const { data: exists } = await api.get(
-        `/catracas/exists-enrollment/${item.id}`,
-        {
-          params: {
-            clientId: catraca.clientId,
-            clientSecret: catraca.clientSecret,
-            machineKey: catraca.machineKey,
-            machineName: "PC Name",
-            type: ["enrollment"],
-          },
-        }
-      );
-
-      if (!exists) {
-        await repoEnrollment.delete({ id: item.id });
-        logger.info(
-          `Matrícula ${item.id} removida do banco local por não existir no banco online.`
-        );
+    const { data: existsEnrollment } = await api.get(
+      `/catracas/exists-enrollment`,
+      {
+        params: {
+          clientId: catraca.clientId,
+          clientSecret: catraca.clientSecret,
+          machineKey: catraca.machineKey,
+          machineName: "PC Name",
+          type: ["enrollment"],
+        },
       }
+    );
+
+    const ids = existsEnrollment?.map((e) => e.id) || [];
+
+    if (ids.length === 0) {
+      logger.warn(
+        "⚠️ Nenhum registro remoto encontrado, ignorando exclusão local."
+      );
+      return;
     }
 
-    logger.info("Verificação finalizada com sucesso.");
+    logger.info("Total de Matrículas existentes no servidor: " + ids.length);
+
+    const repoEnrollment = AppDataSource.getRepository("Enrollment");
+    const results = await repoEnrollment
+      .createQueryBuilder()
+      .select()
+      .where("id NOT IN (:...ids)", { ids })
+      .andWhere("studentId NOT LIKE :deleted", { deleted: "deleted-%" })
+      .execute();
+
+    if (results?.length > 0) {
+      for (const r of results) {
+        logger.info(`Excluindo matrícula local Id: ${r.Enrollment_id}`);
+
+        await repoEnrollment.update(
+          {
+            id: r.Enrollment_id,
+          },
+          {
+            studentId: "deleted-" + Date.now(),
+          }
+        );
+      }
+
+      logger.info(
+        `✅ Verificação finalizada. Registros excluídos: ${results.length}`
+      );
+    }
   } catch (err) {
     console.log(err);
     logger.error(

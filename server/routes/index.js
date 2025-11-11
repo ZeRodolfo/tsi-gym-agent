@@ -10,6 +10,11 @@ const employeesRoutes = require("./employees"); // Importa as rotas
 const agentsRoutes = require("./agents"); // Importa as rotas
 const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger");
+// const axios = require("axios");
+
+// const api = axios.create({
+//   baseURL: "http://localhost:4000/api",
+// });
 
 const router = express.Router();
 
@@ -150,7 +155,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
   const catracas = await repoCatraca.find(); // tentar buscar pelo ip da requisição?
   const catraca = catracas?.[0];
 
-  if (!catraca)
+  if (!catraca) {
+    // await api.post("/notify", {
+    //   title: "Acesso negado",
+    //   message: `Sem comunicação com o servidor local.`,
+    // });
+
     return res.json({
       result: {
         event: 6,
@@ -162,6 +172,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         actions: [],
       },
     });
+  }
 
   const person = await repoPerson.findOne({
     where: {
@@ -210,6 +221,11 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       await repoHistoric.save(historic);
       io.emit("access", { ...historic });
 
+      // await api.post("/notify", {
+      //   title: "Acesso negado",
+      //   message,
+      // });
+
       return res.json({
         result: {
           event: 6,
@@ -225,7 +241,7 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       logger.info("Usuário passou na catraca", { userId, event, portalId });
     }
 
-    const { name, teacher, employee, enrollments } = person;
+    const { name, picture, teacher, employee, enrollments } = person;
     const personName = name?.split(" ")?.[0];
 
     if (!teacher && !employee && !enrollments?.length) {
@@ -243,6 +259,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       });
       await repoHistoric.save(historic);
       io.emit("access", { ...historic });
+
+      // await api.post("/notify", {
+      //   title: "Acesso negado",
+      //   message,
+      //   picture,
+      // });
 
       return res.json({
         result: {
@@ -299,6 +321,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
       io.emit("access", { ...historic, teacher, employee });
 
+      // await api.post("/notify", {
+      //   title: "Acesso liberado",
+      //   message: `Bem-vindo, ${personName}!`,
+      //   picture,
+      // });
+
       // Se atingiu aqui, libera o acesso
       // verificar o sentido da catraca atraves da configuração
       const parameters =
@@ -343,6 +371,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
           await repoHistoric.save(historic);
           io.emit("access", { ...historic });
 
+          // await api.post("/notify", {
+          //   title: "Acesso negado",
+          //   message,
+          //   picture,
+          // });
+
           return res.json({
             result: {
               event: 6,
@@ -370,6 +404,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         });
         await repoHistoric.save(historic);
         io.emit("access", { ...historic });
+
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
 
         return res.json({
           result: {
@@ -431,7 +471,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         return 0;
       };
 
-      console.log('enrollments', enrollments)
       const sortedEnrollments = enrollments.sort(sortEnrollments);
       const enrollment = sortedEnrollments[0];
 
@@ -455,7 +494,6 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         personId: person?.id,
       };
 
-      console.log(enrollment)
       if (enrollment?.status === "pending") {
         const message = "Matrícula pendente.";
         const historic = repoHistoric.create({
@@ -465,6 +503,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         });
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
+
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
 
         return res.json({
           result: {
@@ -489,6 +533,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
 
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
+
         return res.json({
           result: {
             event: 6,
@@ -512,6 +562,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
 
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
+
         return res.json({
           result: {
             event: 6,
@@ -534,6 +590,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         });
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
+
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
 
         return res.json({
           result: {
@@ -574,6 +636,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
 
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
+
         return res.json({
           result: {
             event: 6,
@@ -601,6 +669,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         await repoHistoric.save(historic);
         io.emit("access", { ...historic, enrollment });
 
+        // await api.post("/notify", {
+        //   title: "Acesso negado",
+        //   message,
+        //   picture,
+        // });
+
         return res.json({
           result: {
             event: 6,
@@ -623,6 +697,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       await repoHistoric.save(historic);
 
       io.emit("access", { ...historic, enrollment });
+
+      // await api.post("/notify", {
+      //   title: "Acesso liberado",
+      //   message: `Bem-vindo, ${personName}!`,
+      //   picture,
+      // });
 
       // Se atingiu aqui, libera o acesso
       // verificar o sentido da catraca atraves da configuração
@@ -661,6 +741,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
 
       io.emit("access", { ...historic, teacher, employee });
 
+      // await api.post("/notify", {
+      //   title: "Acesso liberado",
+      //   message: `Bem-vindo, ${personName}!`,
+      //   picture,
+      // });
+
       // Se atingiu aqui, libera o acesso
       // verificar o sentido da catraca atraves da configuração
       const parameters =
@@ -695,6 +781,12 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
     });
     await repoHistoric.save(historic);
     io.emit("access", { ...historic });
+
+    // await api.post("/notify", {
+    //   title: "Acesso negado",
+    //   message,
+    //   picture: person?.picture,
+    // });
 
     return res.json({
       result: {

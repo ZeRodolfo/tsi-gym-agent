@@ -5,12 +5,14 @@ const syncPeopleJob = require("./syncPeopleJob");
 const syncTeachersJob = require("./syncTeachersJob");
 const syncEmployeesJob = require("./syncEmployeesJob");
 const syncEnrollmentsJob = require("./syncEnrollmentsJob");
+const syncExistsEnrollmentsJob = require("./syncExistsEnrollmentsJob");
 
 let isSyncPeopleJobRunning = false;
 let isSyncTeachersJobRunning = false;
 let isSyncEmployeesJobRunning = false;
 let isSyncJobRunning = false;
 let isSyncEnrollmentsRunning = false;
+let isSyncExistsEnrollmentsRunning = false;
 
 module.exports = () => {
   cron.schedule("*/5 * * * * *", async () => {
@@ -96,6 +98,33 @@ module.exports = () => {
       logger.error("❌ Erro no job de sincronização de matrículas:", err);
     } finally {
       isSyncEnrollmentsRunning = false;
+    }
+  });
+
+  cron.schedule("0 0 */1 * * *", async () => {
+    if (isSyncExistsEnrollmentsRunning) {
+      logger.warn(
+        "⏩ Job de exclusão de matrículas no banco principal pulado (execução anterior ainda em andamento)"
+      );
+      return;
+    }
+
+    isSyncExistsEnrollmentsRunning = true;
+    logger.info(
+      "🚀 Iniciando job de exclusão de matrículas no banco principal..."
+    );
+    try {
+      await syncExistsEnrollmentsJob();
+      logger.info(
+        "✅ Job de exclusão de matrículas no banco principal finalizado com sucesso"
+      );
+    } catch (err) {
+      logger.error(
+        "❌ Erro no job de exclusão de matrículas no banco principal:",
+        err
+      );
+    } finally {
+      isSyncExistsEnrollmentsRunning = false;
     }
   });
 

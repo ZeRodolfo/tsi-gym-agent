@@ -196,6 +196,8 @@ function startServer() {
   server.listen(PORT, () => {
     logger.info(`Servidor de acesso iniciado na porta ${PORT}`);
   });
+
+  return app;
 }
 
 module.exports = { startServer };

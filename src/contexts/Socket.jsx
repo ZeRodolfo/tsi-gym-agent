@@ -190,11 +190,11 @@ export const SocketProvider = ({ children }) => {
     //   deleteEnrollment(enrollment);
     // });
 
-    setTimeout(() => {
-      deleteEnrollment({
-        id: 10385,
-      });
-    }, 30000);
+    // setTimeout(() => {
+    //   deleteEnrollment({
+    //     id: 10385,
+    //   });
+    // }, 30000);
 
     socket.on("print:printer", async (response) => {
       try {

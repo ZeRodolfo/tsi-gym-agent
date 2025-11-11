@@ -46,7 +46,7 @@ function startServer() {
   AppDataSource.initialize()
     .then(() => {
       logger.info("Conectado ao SQLite com TypeORM!");
-      // socketInit();
+      socketInit();
     })
     .catch((err) => logger.error("Erro ao conectar no banco de dados:", err));
 
@@ -196,6 +196,8 @@ function startServer() {
   server.listen(PORT, () => {
     logger.info(`Servidor de acesso iniciado na porta ${PORT}`);
   });
+
+  return app;
 }
 
 module.exports = { startServer };

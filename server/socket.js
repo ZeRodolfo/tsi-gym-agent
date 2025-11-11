@@ -23,6 +23,7 @@ module.exports = async () => {
   const catraca = catracas?.[0];
 
   if (catraca) {
+    console.log("Catraca encontrada para conexão via socket:", catraca);
     // Conecta ao backend NestJS (ou outro servidor socket)
     const socket = io(process.env.APP_WSS_BASE_URL, {
       transports: ["websocket"], // força uso do websocket puro
@@ -86,7 +87,7 @@ module.exports = async () => {
         await axios.post(
           `http://${catraca?.ip}/message_to_screen.fcgi?session=${session}`,
           {
-            message: "Catraca Liberada",
+            message: "Acesso liberado",
             timeout: 7000,
           },
           headerParams
@@ -94,6 +95,10 @@ module.exports = async () => {
 
         logger.info("Mensagem enviada para o display via Socket");
 
+        await api.post("/notify", {
+          title: "Acesso liberado",
+          message: `Liberação manual ${response?.reason?.label}`,
+        });
         await api.post("/historic", {
           type: "manually",
           reasonId: response?.reason?.id,

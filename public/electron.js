@@ -5,6 +5,7 @@ const {
   nativeImage,
   Tray,
   Menu,
+  Notification,
 } = require("electron");
 // const isDev = require("electron-is-dev");
 const path = require("path");
@@ -35,6 +36,10 @@ const logger = require(process.env.NODE_ENV === "development"
   : "./server/utils/logger"); // Importe o logger configurado
 
 const { formatCNPJ } = require("./libs/string");
+const AutoLaunch = require("electron-auto-launch");
+
+app.setAppUserModelId("br.com.tsitech.gym");
+app.setName("TSI Gym Agente"); // ou o nome da sua aplicação
 
 const tokenPath = path.join(app?.getPath("userData"), "token.json");
 const catracaPath = path.join(app?.getPath("userData"), "catraca.json");
@@ -73,7 +78,7 @@ function createSplashWindow() {
   splashWindow.once("ready-to-show", () => splashWindow.show());
 }
 
-function createMainWindow() {
+function createWindow() {
   if (mainWindow) {
     mainWindow.show(); // já estava criada → só mostra
     return;
@@ -116,48 +121,74 @@ function createMainWindow() {
     mainWindow.show();
   });
 
+  mainWindow.on("close", (event) => {
+    console.log("Fechando a janela...", app.isQuiting, event);
+    // Em vez de fechar, apenas esconde a janela (fica em background)
+    if (!app.isQuiting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+    return false;
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 }
 
-function showApp() {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
-  } else {
-    createMainWindow();
-  }
-}
+// function showApp() {
+//   if (mainWindow) {
+//     if (mainWindow.isMinimized()) mainWindow.restore();
+//     mainWindow.show();
+//     mainWindow.focus();
+//   } else {
+//     createWindow();
+//   }
+// }
 
 function createTray() {
   tray = new Tray(path.join(__dirname, "logo.png"));
   const contextMenu = Menu.buildFromTemplate([
-    { label: "Abrir", click: () => showApp() },
-    { label: "Sair", click: () => app.quit() },
+    // { label: "Abrir", click: () => showApp() },
+    { label: "Abrir", click: () => mainWindow.show() },
+    {
+      label: "Sair",
+      click: () => {
+        app.isQuiting = true;
+        if (tray) {
+          tray.destroy(); // 🔥 remove o ícone da bandeja
+          tray = null;
+        }
+
+        app.quit();
+      },
+    },
   ]);
 
-  tray.setToolTip("TSI Gym Agent");
+  tray.setToolTip("TSI Gym Agente");
   tray.setContextMenu(contextMenu);
-  tray.on("click", () => showApp()); // abre com clique esquerdo
+  // tray.on("click", () => showApp()); // abre com clique esquerdo
+  // Clique duplo no ícone da bandeja mostra a janela
+  tray.on("double-click", () => {
+    mainWindow.show();
+  });
 }
 
-app.whenReady().then(async () => {
-  createTray();
-  createSplashWindow();
-  createMainWindow();
+// app.whenReady().then(async () => {
+//   createTray();
+//   createSplashWindow();
+//   createWindow();
 
-  const portBusy = await isPortInUse(PORT);
-  if (portBusy) {
-    logger.info(
-      `⚠️ Servidor já está rodando na porta ${PORT}, não será iniciado novamente.`
-    );
-  } else {
-    logger.info(`🚀 Iniciando servidor local na porta ${PORT}...`);
-    startServer();
-  }
-});
+//   const portBusy = await isPortInUse(PORT);
+//   if (portBusy) {
+//     logger.info(
+//       `⚠️ Servidor já está rodando na porta ${PORT}, não será iniciado novamente.`
+//     );
+//   } else {
+//     logger.info(`🚀 Iniciando servidor local na porta ${PORT}...`);
+//     startServer();
+//   }
+// });
 
 // app.whenReady().then(async () => {
 //   createWindow();
@@ -199,17 +230,164 @@ app.whenReady().then(async () => {
 //   });
 // });
 
-app.on("window-all-closed", (event) => {
-  // if (process.platform !== "darwin") app.quit();
-  // impede que o Electron finalize quando todas janelas fecharem
-  event.preventDefault();
-});
+// 🔔 Função utilitária para mostrar notificações
+function showNotification({ title, body, imagePath, iconPath, base64Image }) {
+  let notificationOptions = {
+    title,
+    subtitle: "TSI",
+    body,
+    closeButtonText: "Fechar",
+    icon: iconPath ? path.resolve(iconPath) : path.join(__dirname, "logo.png"),
+    sound: true,
+    silent: false,
+    timeoutType: "default",
+    urgency: "normal",
+    actions: [{ type: "button", text: "Ver histórico" }],
+  };
 
-app.on("activate", () => {
-  if (!mainWindow) {
-    createWindow();
+  // ⚙️ Se foi passada uma imagem (foto), adiciona ao corpo
+  if (imagePath && fs.existsSync(imagePath)) {
+    const image = nativeImage.createFromPath(path.resolve(imagePath));
+    notificationOptions = { ...notificationOptions, image };
   }
-});
+
+  if (base64Image) {
+    console.log("Adicionando imagem base64 na notificação", base64Image);
+    // Remove o prefixo "data:image/...;base64," se existir
+    const cleanedBase64 = base64Image.replace(/^data:image\/\w+;base64,/, "");
+    // Cria caminho temporário
+    const tempPath = path.join(app.getPath("temp"), `notif-${Date.now()}.png`);
+    const imageBuffer = Buffer.from(cleanedBase64, "base64");
+    fs.writeFileSync(tempPath, imageBuffer);
+
+    console.log("Imagem temporária criada em:", tempPath);
+    notificationOptions = {
+      ...notificationOptions,
+      icon: tempPath, // caminho local
+    };
+
+    // (opcional) remove depois de um tempo
+    setTimeout(() => fs.existsSync(tempPath) && fs.unlinkSync(tempPath), 60000);
+  }
+
+  const notify = new Notification(notificationOptions);
+  notify.on("click", () => {
+    console.log("Notificação clicada!", mainWindow);
+    mainWindow.show();
+  });
+
+  notify.on("action", (event, index) => {
+    if (index === 0) {
+      console.log('Usuário clicou em "Ver histórico"');
+    }
+  });
+
+  notify.show();
+}
+
+if (process.env.NODE_ENV !== "development") {
+  const autoLauncher = new AutoLaunch({
+    name: "TSI Gym Agente",
+    path: app.getPath("exe"),
+  });
+
+  autoLauncher.isEnabled().then((enabled) => {
+    if (!enabled) autoLauncher.enable();
+  });
+}
+
+// --- EVITA MÚLTIPLAS INSTÂNCIAS ---
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit(); // já existe uma instância, encerra essa nova
+} else {
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
+    // se o usuário tentar abrir novamente, traz a janela existente para frente
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  // app.whenReady().then(createWindow);
+
+  app.whenReady().then(async () => {
+    createWindow();
+    createTray();
+
+    const portBusy = await isPortInUse(PORT);
+    if (portBusy) {
+      logger.info(
+        `⚠️ Servidor já está rodando na porta ${PORT}, não será iniciado novamente.`
+      );
+    } else {
+      logger.info(`🚀 Iniciando servidor local na porta ${PORT}...`);
+      const appServer = startServer();
+
+      // Exemplo: rota para emitir notificações
+      appServer.post("/api/notify", (req, res) => {
+        const { title, message, picture } = req.body;
+        if (!title || !message) {
+          return res
+            .status(400)
+            .json({ error: "Campos title e message são obrigatórios" });
+        }
+
+        showNotification({ title, body: message, base64Image: picture });
+        return res.json({ success: true });
+      });
+
+      // Exemplo: rota simulando liberação de catraca
+      appServer.post("/api/catraca/liberada", (req, res) => {
+        const { user } = req.body;
+        showNotification({
+          title: "Catraca liberada",
+          body: `Acesso autorizado para ${user || "usuário desconhecido"}`,
+        });
+        res.json({ status: "ok" });
+      });
+    }
+
+    // Mostra a janela na primeira execução
+    mainWindow.show();
+
+    // ✅ Exemplo: mostrar notificação ao iniciar
+    showNotification({
+      title: "Aplicativo iniciado",
+      body: "O Agente foi inicializado com sucesso.",
+    });
+  });
+
+  app.on("activate", () => {
+    // No macOS, reabre a janela se o app estiver no dock
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+
+  app.on("window-all-closed", () => {
+    // não encerra no Windows nem no macOS, continua em segundo plano
+    if (process.platform !== "darwin") {
+      // app.quit(); // comente isso para manter em background
+    }
+  });
+
+  app.on("before-quit", () => {
+    app.isQuiting = true;
+  });
+
+  // app.on("window-all-closed", (event) => {
+  //   // if (process.platform !== "darwin") app.quit();
+  //   // impede que o Electron finalize quando todas janelas fecharem
+  //   event.preventDefault();
+  // });
+
+  // app.on("activate", () => {
+  //   if (!mainWindow) {
+  //     createWindow();
+  //   }
+  // });
+}
 
 // IPC para salvar token
 ipcMain.on("save-token", (event, data) => {

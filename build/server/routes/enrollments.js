@@ -254,15 +254,16 @@ router.delete("/:id", async (req, res) => {
     const item = await repoEnrollment.findOne({
       where: { id: req?.params?.id },
     });
+
     if (item) {
       const existsTeacher = await repoTeacher.findOne({
         where: {
-          identifierCatraca: item.identifierCatraca,
+          personId: item.personId,
         },
       });
       const existsEmployee = await repoEmployee.findOne({
         where: {
-          identifierCatraca: item.identifierCatraca,
+          personId: item.personId,
         },
       });
 
