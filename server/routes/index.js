@@ -241,8 +241,17 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
       logger.info("Usuário passou na catraca", { userId, event, portalId });
     }
 
-    const { name, picture, teacher, employee, enrollments } = person;
+    const {
+      name,
+      picture,
+      teacher,
+      employee,
+      enrollments: personEnrollments,
+    } = person;
     const personName = name?.split(" ")?.[0];
+    const enrollments = personEnrollments?.filter(
+      (e) => !e.studentId?.includes("deleted-")
+    );
 
     if (!teacher && !employee && !enrollments?.length) {
       const message = "Sincronizando informações. Aguarde!";

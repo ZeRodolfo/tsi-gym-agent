@@ -101,7 +101,7 @@ module.exports = () => {
     }
   });
 
-  cron.schedule("0 0 */1 * * *", async () => {
+  cron.schedule("*/60 * * * * *", async () => {
     if (isSyncExistsEnrollmentsRunning) {
       logger.warn(
         "⏩ Job de exclusão de matrículas no banco principal pulado (execução anterior ainda em andamento)"
