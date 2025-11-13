@@ -10,7 +10,7 @@ const employeesRoutes = require("./employees"); // Importa as rotas
 const agentsRoutes = require("./agents"); // Importa as rotas
 const { AppDataSource } = require("../ormconfig");
 const logger = require("../utils/logger");
-// const axios = require("axios");
+const axios = require("axios");
 
 // const api = axios.create({
 //   baseURL: "http://localhost:4000/api",
@@ -136,6 +136,14 @@ router.post("/biometria", async (req, res) => {
 router.post("/new_user_identified.fcgi", async (req, res) => {
   logger.info("Validação do usuário na catraca");
 
+  const ip =
+    req?.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || // se estiver atrás de proxy
+    req?.connection?.remoteAddress;
+
+  // Normaliza o loopback IPv6 para IPv4
+  const normalizedIp = ip === "::1" ? "127.0.0.1" : ip.replace("::ffff:", "");
+  logger.info("Origem da requisição (IP): " + normalizedIp);
+
   const io = req.app.get("io");
   const {
     user_id: userIdStr,
@@ -153,7 +161,13 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
   const repoHistoric = AppDataSource.getRepository("Historic");
   const repoCatraca = AppDataSource.getRepository("Catraca");
   const catracas = await repoCatraca.find(); // tentar buscar pelo ip da requisição?
-  const catraca = catracas?.[0];
+  const catraca =
+    normalizedIp === "127.0.0.1"
+      ? catracas?.[0]
+      : catracas?.find(
+          (item) =>
+            item.ip === normalizedIp || item?.ipSecondary === normalizedIp
+        );
 
   if (!catraca) {
     // await api.post("/notify", {
@@ -197,8 +211,60 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
   try {
     logger.info("Dados do usuário na catraca", { userId, event, portalId });
 
+    if (catraca?.slave) {
+      const primaryFree =
+        catraca?.primaryIpSide === "exit" && normalizedIp === catraca?.ip;
+      const secondaryFree =
+        catraca?.primaryIpSide === "entry" &&
+        normalizedIp === catraca?.ipSecondary;
+
+      if (primaryFree || secondaryFree) {
+        const historic = repoHistoric.create({
+          catraca: { id: catraca?.id },
+          companyId: catraca?.companyId,
+          branchId: catraca?.branchId,
+          personId: person?.id,
+          type: "terminal",
+          identifierCatraca: userId,
+          attendedAt: new Date(),
+          status: "success",
+          message: person?.name
+            ? `Volte sempre, ${person?.name}!`
+            : "Volte sempre!",
+        });
+        await repoHistoric.save(historic);
+
+        io.emit("access", { ...historic });
+
+        // await api.post("/notify", {
+        //   title: "Acesso liberado",
+        //   message: `Volte sempre, ${person?.name}!`,
+        //   picture,
+        // });
+
+        // inverter o sentido da liberação na catraca atraves da configuração
+        const parameters =
+          catraca?.catraSideToEnter === "0"
+            ? "allow=anticlockwise"
+            : "allow=clockwise";
+        return res.json({
+          result: {
+            event: 7,
+            user_id: userId,
+            user_name: person?.name || "Atenção",
+            user_image: user_has_image === "1",
+            actions: [{ action: "catra", parameters }],
+            portal_id: portalId,
+            message: person?.name
+              ? `Volte sempre, ${person?.name}!`
+              : "Volte sempre!",
+          },
+        });
+      }
+    }
+
     if (userId === 0 || !person) {
-      const message = "Matrícula não localizada.";
+      const message = "Facial não detectada.";
       logger.info("Usuário não encontrado na catraca", {
         userId,
         event,
@@ -805,6 +871,216 @@ router.post("/new_user_identified.fcgi", async (req, res) => {
         user_image: false,
         user_id: userId,
         portal_id: portalId,
+        actions: [],
+      },
+    });
+  }
+});
+
+router.post("/new_qrcode.fcgi", async (req, res) => {
+  logger.info("Validação do QRCode na catraca");
+
+  const io = req.app.get("io");
+  const { device_id, identifier_id, qrcode_value, uuid, time, portal_id } =
+    req.body;
+
+  const repoHistoric = AppDataSource.getRepository("Historic");
+  const repoCatraca = AppDataSource.getRepository("Catraca");
+  const catracas = await repoCatraca.find(); // tentar buscar pelo ip da requisição?
+  const catraca = catracas?.[0];
+
+  logger.info(`Identificação QRCode:`, {
+    device_id,
+    identifier_id,
+    qrcode_value,
+    uuid,
+    time,
+    portal_id,
+  });
+
+  if (!catraca) {
+    // await api.post("/notify", {
+    //   title: "Acesso negado",
+    //   message: `Sem comunicação com o servidor local.`,
+    // });
+
+    return res.json({
+      result: {
+        event: 6,
+        message: "Sem comunicação com o servidor local.",
+        user_name: "Usuário",
+        user_image: false,
+        user_id: userId,
+        portal_id: portalId,
+        actions: [],
+      },
+    });
+  }
+
+  try {
+    if (catraca?.slave) {
+      const primaryFree =
+        catraca?.primaryIpSide === "exit" && normalizedIp === catraca?.ip;
+      const secondaryFree =
+        catraca?.primaryIpSide === "entry" &&
+        normalizedIp === catraca?.ipSecondary;
+
+      if (primaryFree || secondaryFree) {
+        const historic = repoHistoric.create({
+          catraca: { id: catraca?.id },
+          companyId: catraca?.companyId,
+          branchId: catraca?.branchId,
+          personId: person?.id,
+          type: "terminal",
+          identifierCatraca: userId,
+          attendedAt: new Date(),
+          status: "success",
+          message: person?.name
+            ? `Volte sempre, ${person?.name}!`
+            : "Volte sempre!",
+        });
+        await repoHistoric.save(historic);
+
+        io.emit("access", { ...historic });
+
+        // await api.post("/notify", {
+        //   title: "Acesso liberado",
+        //   message: `Volte sempre, ${person?.name}!`,
+        //   picture,
+        // });
+
+        // inverter o sentido da liberação na catraca atraves da configuração
+        const parameters =
+          catraca?.catraSideToEnter === "0"
+            ? "allow=anticlockwise"
+            : "allow=clockwise";
+        return res.json({
+          result: {
+            event: 7,
+            user_id: userId,
+            user_name: person?.name || "Atenção",
+            user_image: user_has_image === "1",
+            actions: [{ action: "catra", parameters }],
+            portal_id: portalId,
+            message: person?.name
+              ? `Volte sempre, ${person?.name}!`
+              : "Volte sempre!",
+          },
+        });
+      }
+    }
+
+    const repoIntegration = AppDataSource.getRepository("Integration");
+    const integration = await repoIntegration.findOneBy({
+      code: qrcode_value,
+    });
+
+    if (!integration) {
+      return res.json({
+        result: {
+          event: 6,
+          message: "Código inválido.",
+          user_name: "Atenção",
+          user_image: false,
+          user_id: 0,
+          portal_id,
+          actions: [],
+        },
+      });
+    }
+
+    // validate code in wellhub
+    const { data: isValid } = await axios.post(
+      `${process.env.BASE_URL}/webhook/validate/${integration?.source}`,
+      {
+        gymId: integration?.gymId,
+        uniqueToken: integration?.uniqueToken,
+        code: integration?.code,
+      },
+      {
+        headers: {
+          "x-client-id": catraca?.clientId,
+          "x-client-secret": catraca?.clientSecret,
+          "x-company-id": catraca?.companyId,
+          "x-branch-id": catraca?.branchId,
+        },
+      }
+    );
+
+    const eventData = JSON.parse(integration?.eventData || "{}");
+    const userName =
+      eventData?.user?.name?.split(" ")?.[0] || eventData?.user?.first_name;
+
+    const today = new Date();
+    const checkinAt = integration?.checkinAt || new Date();
+    if (format(checkinAt, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")) {
+      const parameters =
+        catraca?.catraSideToEnter === "0"
+          ? "allow=clockwise"
+          : "allow=anticlockwise";
+
+      // update
+      await repoIntegration.update(
+        {
+          id: integration.id,
+        },
+        {
+          checkinAt: new Date(),
+        }
+      );
+      return res.json({
+        result: {
+          event: 7,
+          user_id: 0,
+          user_name: userName || "Acesso liberado",
+          user_image: false,
+          actions: [{ action: "catra", parameters }],
+          portal_id: portalId,
+          message: `Bem-vindo, ${userName}!`,
+        },
+      });
+    } else {
+      return res.json({
+        result: {
+          event: 6,
+          message: "Código expirado.",
+          user_name: userName || "Acesso negado",
+          user_image: false,
+          user_id: 0,
+          portal_id,
+          actions: [],
+        },
+      });
+    }
+  } catch (err) {
+    logger.error("Não foi possível liberar a catraca:", err);
+    const message = "Código inválido.";
+    const historic = repoHistoric.create({
+      catraca: { id: catraca?.id },
+      companyId: catraca?.companyId,
+      branchId: catraca?.branchId,
+      type: "terminal",
+      attendedAt: new Date(),
+      status: "not_found",
+      message,
+    });
+    await repoHistoric.save(historic);
+    io.emit("access", { ...historic });
+
+    // await api.post("/notify", {
+    //   title: "Acesso negado",
+    //   message,
+    //   picture: person?.picture,
+    // });
+
+    return res.json({
+      result: {
+        event: 6,
+        message,
+        user_name: "Usuário",
+        user_image: false,
+        user_id: 0,
+        portal_id,
         actions: [],
       },
     });

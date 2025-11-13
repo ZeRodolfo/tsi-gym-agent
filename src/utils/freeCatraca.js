@@ -36,7 +36,7 @@ export const handleFreeCatracaConfirm = async (
     }
 
     await enviarMensagemTela(catraca?.ip, session, {
-      message: "Catraca Liberada",
+      message: ">>> ACESSO LIBERADO <<<",
     });
 
     await api.post("/historic", {

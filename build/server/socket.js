@@ -87,7 +87,7 @@ module.exports = async () => {
         await axios.post(
           `http://${catraca?.ip}/message_to_screen.fcgi?session=${session}`,
           {
-            message: "Acesso liberado",
+            message: ">>> ACESSO LIBERADO <<<",
             timeout: 7000,
           },
           headerParams

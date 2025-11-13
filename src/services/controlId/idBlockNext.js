@@ -179,6 +179,29 @@ export const customizarMensagemEventos = async (
     });
 };
 
+export const customizarModoOperacaoQRCode = async (
+  ip,
+  session,
+  face_id = {
+    qrcode_legacy_mode_enabled: "0",
+  }
+) => {
+  return await axios
+    .post(
+      `http://${ip}/set_configuration.fcgi?session=${session}`,
+      {
+        face_id,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+        timeout: 10000, // 10 segundos
+      }
+    )
+    .catch((error) => {
+      throw error;
+    });
+};
+
 export const createUsers = async (
   ip,
   session,

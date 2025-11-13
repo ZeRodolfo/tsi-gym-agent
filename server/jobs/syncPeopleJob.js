@@ -48,6 +48,23 @@ module.exports = async function job() {
       logger.info("SESSÂO", { session });
       if (!session) throw new Error("Falha ao autenticar na catraca");
 
+      let sessionSecondary = null;
+      if (catraca?.ipSecondary) {
+        const responseSecondary = await axios.post(
+          `http://${catraca?.ipSecondary}/login.fcgi`,
+          {
+            login: catraca?.usernameSecondary,
+            password: catraca?.passwordSecondary,
+          },
+          headerParams
+        );
+
+        sessionSecondary = responseSecondary?.data?.session;
+        logger.info("SESSÂO", { sessionSecondary });
+        if (!sessionSecondary)
+          throw new Error("Falha ao autenticar na catraca");
+      }
+
       const peopleUsers = response.people?.map((item) => ({
         id: item?.identifierCatraca,
         name: item?.name,
@@ -70,6 +87,16 @@ module.exports = async function job() {
             },
             headerParams
           );
+
+          if (sessionSecondary)
+            await axios.post(
+              `http://${catraca?.ipSecondary}/create_or_modify_objects.fcgi?session=${sessionSecondary}`,
+              {
+                object: "users",
+                values: chunk,
+              },
+              headerParams
+            );
         }
       }
 
@@ -111,6 +138,15 @@ module.exports = async function job() {
             },
             headerParams
           );
+
+          if (sessionSecondary)
+            await axios.post(
+              `http://${catraca?.ipSecondary}/user_destroy_image.fcgi?session=${sessionSecondary}`,
+              {
+                user_id: peopleFacesToRemove[i],
+              },
+              headerParams
+            );
 
           logger.info(`Foto removida de (${peopleFacesToRemove[i]})...`);
           results.push({
@@ -209,6 +245,16 @@ module.exports = async function job() {
           },
           headerParams
         );
+
+        if (sessionSecondary)
+          await axios.post(
+            `http://${catraca?.ipSecondary}/user_set_image_list.fcgi?session=${sessionSecondary}`,
+            {
+              match: false,
+              user_images: chunk,
+            },
+            headerParams
+          );
 
         if (result?.results) results.push(...result?.results);
       }

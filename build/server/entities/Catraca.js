@@ -18,6 +18,11 @@ const Catraca = new EntitySchema({
     ip: { type: "varchar", nullable: true },
     username: { type: "varchar", nullable: true },
     password: { type: "varchar", nullable: true },
+    primaryIpSide: { type: "varchar", nullable: true, default: "entry" },
+    slave: { type: "varchar", default: false, nullable: true },
+    ipSecondary: { type: "varchar", nullable: true },
+    usernameSecondary: { type: "varchar", nullable: true },
+    passwordSecondary: { type: "varchar", nullable: true },
     ipLocal: { type: "varchar", nullable: true },
     portLocal: { type: "int", nullable: true },
     catraSideToEnter: { type: "varchar", nullable: true },
@@ -48,7 +53,7 @@ const Catraca = new EntitySchema({
       joinColumn: { name: "agentId" },
       eager: true,
       onDelete: "CASCADE",
-    }
+    },
   },
 });
 

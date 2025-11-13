@@ -14,6 +14,7 @@ const { Company } = require("./entities/Company");
 const { Teacher } = require("./entities/Teacher");
 const { Employee } = require("./entities/Employee");
 const { WorkTime } = require("./entities/WorkTime");
+const { Integration } = require("./entities/Integration");
 
 const logger = require("./utils/logger");
 const dbPath =
@@ -42,6 +43,7 @@ const AppDataSource = new DataSource({
     Teacher,
     Employee,
     WorkTime,
+    Integration,
   ],
 });
 

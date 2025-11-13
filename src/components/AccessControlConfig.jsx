@@ -21,6 +21,7 @@ import {
 import {
   login,
   customizarMensagemEventos,
+  customizarModoOperacaoQRCode,
 } from "services/controlId/idBlockNext";
 import setupIDBlock from "services/controlId/config-idblock";
 import { toast } from "react-toastify";
@@ -115,36 +116,90 @@ export default function AccessControlConfig({ onSetup }) {
       return;
     }
 
-    // pegar o IP da maquina onde esta o agente
-    setupIDBlock({
-      DEVICE_IP: ip,
-      DEVICE_PASSWORD: [username, password].join(":"),
-      WEBHOOK_URL: `http://${ipLocal}:4000/api`,
-      session,
-      catra_side_to_enter: sideToEnter,
-    })
-      .then(async () => {
-        await customizarMensagemEventos(ip, session, {
-          custom_auth_message: txtWelcome,
-          custom_deny_message: txtAccessDenied,
-          custom_not_identified_message: txtUserNotIdentifier,
-          custom_mask_message: "Por favor, use máscara",
-          enable_custom_auth_message: "1",
-          enable_custom_deny_message: "1",
-          enable_custom_not_identified_message: "1",
-          enable_custom_mask_message: "1",
-        });
-        toast.success("Catraca configurada com sucesso!");
-      })
-      .catch((error) => {
-        console.error("Erro ao configurar catraca:", error);
-        toast.error(
-          "Não foi possível configurar a catraca. Por favor, verifique os dados."
-        );
-      })
-      .finally(() => {
-        setIsLoadingSettings(false);
+    try {
+      // pegar o IP da maquina onde esta o agente
+      await setupIDBlock({
+        DEVICE_IP: ip,
+        DEVICE_PASSWORD: [username, password].join(":"),
+        WEBHOOK_URL: `http://${ipLocal}:4000/api`,
+        session,
+        catra_side_to_enter: sideToEnter,
+        logo: catraca?.company?.logo,
       });
+
+      await customizarMensagemEventos(ip, session, {
+        custom_auth_message: txtWelcome,
+        custom_deny_message: txtAccessDenied,
+        custom_not_identified_message: txtUserNotIdentifier,
+        custom_mask_message: "Por favor, use máscara",
+        enable_custom_auth_message: "1",
+        enable_custom_deny_message: "1",
+        enable_custom_not_identified_message: "1",
+        enable_custom_mask_message: "1",
+      });
+      await customizarModoOperacaoQRCode(ip, session, {
+        qrcode_legacy_mode_enabled: "0",
+      });
+
+      if (catraca?.ipSecondary) {
+        const responseSecondary = await login(catraca?.ipSecondary, {
+          login: catraca?.usernameSecondary,
+          password: catraca?.passwordSecondary,
+        });
+
+        const sessionSecondary = responseSecondary?.data?.session || {};
+        if (!sessionSecondary) {
+          toast.error(
+            "Não foi possível se comunicar com a catraca. Por favor, verifique os dados."
+          );
+          setIsLoadingSettings(false);
+          return;
+        }
+
+        await setupIDBlock({
+          DEVICE_IP: catraca?.ipSecondary,
+          DEVICE_PASSWORD: [
+            catraca?.usernameSecondary,
+            catraca?.passwordSecondary,
+          ].join(":"),
+          WEBHOOK_URL: `http://${ipLocal}:4000/api`,
+          session: sessionSecondary,
+          catra_side_to_enter: sideToEnter,
+          logo: catraca?.company?.logo,
+        });
+
+        await customizarMensagemEventos(
+          catraca?.ipSecondary,
+          sessionSecondary,
+          {
+            custom_auth_message: txtWelcome,
+            custom_deny_message: txtAccessDenied,
+            custom_not_identified_message: txtUserNotIdentifier,
+            custom_mask_message: "Por favor, use máscara",
+            enable_custom_auth_message: "1",
+            enable_custom_deny_message: "1",
+            enable_custom_not_identified_message: "1",
+            enable_custom_mask_message: "1",
+          }
+        );
+        // await customizarModoOperacaoQRCode(
+        //   catraca?.ipSecondary,
+        //   sessionSecondary,
+        //   {
+        //     qrcode_legacy_mode_enabled: "0",
+        //   }
+        // );
+      }
+
+      toast.success("Catraca configurada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao configurar catraca:", error);
+      toast.error(
+        "Não foi possível configurar a catraca. Por favor, verifique os dados."
+      );
+    } finally {
+      setIsLoadingSettings(false);
+    }
   };
 
   const handleSaveTab = async () => {
@@ -191,6 +246,9 @@ export default function AccessControlConfig({ onSetup }) {
         enable_custom_deny_message: "1",
         enable_custom_not_identified_message: "1",
         enable_custom_mask_message: "1",
+      });
+      await customizarModoOperacaoQRCode(ip, session, {
+        qrcode_legacy_mode_enabled: "0",
       });
       toast.success("Dados da Catraca salvos com sucesso!");
       onSetup?.("/main");

@@ -18,6 +18,7 @@ router.get("/", async (req, res) => {
       where: {
         ip: Not(IsNull()),
       },
+      relations: ["company"]
     });
 
     return res.status(200).json(catraca);
@@ -105,10 +106,15 @@ router.post("/", async (req, res) => {
   const {
     type,
     ip,
-    port,
     username,
     password,
+    primaryIpSide,
+    slave,
+    ipSecondary,
+    usernameSecondary,
+    passwordSecondary,
     ipLocal,
+    port,
     catraSideToEnter,
     customAuthMessage,
     customDenyMessage,
@@ -126,6 +132,11 @@ router.post("/", async (req, res) => {
 
   const payload = {
     type,
+    primaryIpSide,
+    slave,
+    ipSecondary,
+    usernameSecondary,
+    passwordSecondary,
     ip,
     port,
     username,

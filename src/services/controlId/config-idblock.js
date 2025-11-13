@@ -6,7 +6,7 @@ let DEVICE_IP, DEVICE_PASSWORD, WEBHOOK_URL;
 // const { DEVICE_IP, DEVICE_PASSWORD, WEBHOOK_URL } = process.env;
 
 // helper para fazer GET autenticado
-async function fcgi(path, payload = {}, sessionId) {
+async function fcgi(path, payload = {}, sessionId, isPrimary = true) {
   const url = `http://${DEVICE_IP}/${path}?session=${sessionId}`;
   const resp = await axios.post(url, payload, {
     timeout: 5000,
@@ -17,7 +17,7 @@ async function fcgi(path, payload = {}, sessionId) {
 export default async function main(payload = {}) {
   DEVICE_IP = payload.DEVICE_IP;
   DEVICE_PASSWORD = payload.DEVICE_PASSWORD;
-  WEBHOOK_URL = payload.WEBHOOK_URL // "http://192.168.18.27:4000/api";
+  WEBHOOK_URL = payload.WEBHOOK_URL; // "http://192.168.18.27:4000/api";
   const session = payload.session;
 
   try {
@@ -52,6 +52,20 @@ export default async function main(payload = {}) {
       session
     );
 
+    if (payload?.logo) {
+      // 2) Definir sec_box.catra_role = 1 (device primário)
+      console.log("2) Definindo logo");
+      const base64Body = payload?.logo?.replace(/^data:image\/\w+;base64,/, ""); // remove o prefixo data:image/png;base64,
+      const buffer = Buffer.from(base64Body, "base64");
+      const url = `http://${DEVICE_IP}/logo_change.fcgi?session=${session}&id=1`;
+      await axios.post(url, buffer, {
+        headers: {
+          "Content-Type": "application/octet-stream",
+        },
+        timeout: 10000,
+      });
+    }
+
     // 3) Ativar modo online e identificação local
     console.log("3) Ativando modo online e local_identification");
     await fcgi(
@@ -68,6 +82,15 @@ export default async function main(payload = {}) {
       {
         general: {
           local_identification: "1",
+        },
+      },
+      session
+    );
+    await fcgi(
+      "set_configuration.fcgi",
+      {
+        general: {
+          show_logo: "1",
         },
       },
       session
@@ -98,7 +121,9 @@ export default async function main(payload = {}) {
     );
 
     // 6) (Opcional) definir direção de entrada
-    console.log("6) Definindo catra_side_to_enter = clockwise | 0 = horario | 1 = anti-horario");
+    console.log(
+      "6) Definindo catra_side_to_enter = clockwise | 0 = horario | 1 = anti-horario"
+    );
     await fcgi(
       "set_configuration.fcgi",
       {
@@ -108,6 +133,37 @@ export default async function main(payload = {}) {
       },
       session
     );
+
+    await fcgi(
+      "set_configuration.fcgi",
+      {
+        buzzer: {
+          audio_message_volume_gain: "3",
+          audio_message_not_identified: "default",
+          audio_message_authorized: "default",
+          audio_message_not_authorized: "default",
+          audio_message_use_mask: "default",
+        },
+      },
+      session
+    );
+
+    if (payload?.qrcode_legacy_mode_enabled) {
+      // 7) (Opcional) definir modo de operação do QR Code
+      console.log(
+        "7) Realizando a alteração do modo de operação do QR Code: 0 - Alfanumerico | 1 = Numérico | 2 = Hexadecimal"
+      );
+      await fcgi(
+        "set_configuration.fcgi",
+        {
+          face_id: {
+            qrcode_legacy_mode_enabled:
+              payload?.qrcode_legacy_mode_enabled || "0",
+          },
+        },
+        session
+      );
+    }
 
     console.log(
       "\n🎉 Configuração concluída! iDBlock Next pronto para modo online."

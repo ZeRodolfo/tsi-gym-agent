@@ -6,6 +6,7 @@ const syncTeachersJob = require("./syncTeachersJob");
 const syncEmployeesJob = require("./syncEmployeesJob");
 const syncEnrollmentsJob = require("./syncEnrollmentsJob");
 const syncExistsEnrollmentsJob = require("./syncExistsEnrollmentsJob");
+const syncIntegrationsJob = require("./syncIntegrationsJob");
 
 let isSyncPeopleJobRunning = false;
 let isSyncTeachersJobRunning = false;
@@ -13,6 +14,7 @@ let isSyncEmployeesJobRunning = false;
 let isSyncJobRunning = false;
 let isSyncEnrollmentsRunning = false;
 let isSyncExistsEnrollmentsRunning = false;
+let isSyncIntegationsJobRunning = false;
 
 module.exports = () => {
   cron.schedule("*/5 * * * * *", async () => {
@@ -145,6 +147,28 @@ module.exports = () => {
       logger.error("❌ Erro no job de sincronização:", err);
     } finally {
       isSyncJobRunning = false;
+    }
+  });
+
+  cron.schedule("*/5 * * * * *", async () => {
+    if (isSyncIntegationsJobRunning) {
+      logger.warn(
+        "⏩ Job de sincronização de integrações pulado (execução anterior ainda em andamento)"
+      );
+      return;
+    }
+
+    isSyncIntegationsJobRunning = true;
+    logger.info("🚀 Iniciando job de sincronização de integrações...");
+    try {
+      await syncIntegrationsJob();
+      logger.info(
+        "✅ Job de sincronização de integrações finalizado com sucesso"
+      );
+    } catch (err) {
+      logger.error("❌ Erro no job de sincronização de integrações:", err);
+    } finally {
+      isSyncIntegationsJobRunning = false;
     }
   });
 };
